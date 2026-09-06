@@ -478,7 +478,19 @@ header{
 }
 </style>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+  const SUPABASE_URL = "https://reltnnnwbiyefflbekts.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9SyUmLmAc0FweQoUZV_2eg_Cpdwlc7E";
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  console.log("Casa Quest → Supabase collegato!");
+</script>
 <body>
 
 <div class="app">
