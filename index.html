@@ -1,14 +1,563 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Casa Quest</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Casa Quest</title>
+
+<style>
+:root{
+  --bg:#17131f;
+  --panel:#241d30;
+  --panel2:#30263d;
+  --gold:#e8b85c;
+  --gold2:#f4d58b;
+  --text:#f5f1e8;
+  --muted:#aaa0b5;
+  --green:#6fcf97;
+  --red:#e56b6f;
+  --blue:#75aee8;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at top,#392a49 0%,#17131f 48%);
+  color:var(--text);
+  font-family:Georgia,serif;
+}
+
+button{
+  font:inherit;
+}
+
+.app{
+  max-width:1100px;
+  margin:auto;
+  padding:18px;
+}
+
+/* HEADER */
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  margin-bottom:20px;
+}
+
+.logo{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo-icon{
+  font-size:42px;
+}
+
+.logo h1{
+  margin:0;
+  font-size:30px;
+  color:var(--gold2);
+}
+
+.logo p{
+  margin:3px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.season{
+  background:var(--panel);
+  border:1px solid #554565;
+  padding:10px 14px;
+  border-radius:12px;
+  text-align:center;
+}
+
+.season strong{
+  color:var(--gold);
+}
+
+/* PLAYER CARDS */
+
+.players{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+
+.player{
+  background:linear-gradient(145deg,#2b2237,#201a2a);
+  border:1px solid #554565;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 10px 30px #0005;
+}
+
+.player-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.avatar{
+  font-size:42px;
+}
+
+.player-name{
+  font-size:22px;
+  font-weight:bold;
+}
+
+.level{
+  color:var(--gold);
+  font-size:14px;
+}
+
+.stat-row{
+  display:flex;
+  justify-content:space-between;
+  margin-top:15px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.stat-row strong{
+  color:var(--text);
+}
+
+.xpbar{
+  height:10px;
+  background:#120f17;
+  border-radius:20px;
+  overflow:hidden;
+  margin-top:7px;
+}
+
+.xpfill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--gold),#fff0b0);
+  transition:.4s;
+}
+
+/* STREAK */
+
+.streak{
+  margin:18px 0;
+  background:linear-gradient(135deg,#402d22,#251b27);
+  border:1px solid #765137;
+  border-radius:18px;
+  padding:18px;
+  text-align:center;
+}
+
+.streak-title{
+  color:#ffcc78;
+  font-size:15px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.streak-number{
+  font-size:46px;
+  font-weight:bold;
+  margin:5px 0;
+}
+
+.streak-sub{
+  color:var(--muted);
+}
+
+/* NAV */
+
+.nav{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin:18px 0;
+  padding-bottom:3px;
+}
+
+.nav button{
+  white-space:nowrap;
+  background:var(--panel);
+  color:var(--muted);
+  border:1px solid #4b3d59;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+.nav button.active,
+.nav button:hover{
+  color:var(--gold2);
+  border-color:var(--gold);
+}
+
+/* SECTIONS */
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.section-title{
+  font-size:24px;
+  margin:10px 0 15px;
+  color:var(--gold2);
+}
+
+/* QUESTS */
+
+.quest{
+  background:var(--panel);
+  border:1px solid #4b3d59;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:12px;
+}
+
+.quest.urgent{
+  border-color:var(--red);
+  box-shadow:0 0 18px #e56b6f22;
+}
+
+.quest-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.quest-name{
+  font-size:18px;
+  font-weight:bold;
+}
+
+.quest-meta{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:5px;
+}
+
+.quest-reward{
+  color:var(--gold);
+  white-space:nowrap;
+  font-weight:bold;
+}
+
+.quest-bottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+.quest button{
+  background:var(--gold);
+  border:0;
+  color:#241b12;
+  font-weight:bold;
+  border-radius:10px;
+  padding:9px 13px;
+  cursor:pointer;
+}
+
+.quest button:hover{
+  background:var(--gold2);
+}
+
+.tag{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:11px;
+  margin-top:8px;
+  background:#3b3047;
+  color:var(--muted);
+}
+
+.tag.urgent-tag{
+  background:#522b32;
+  color:#ffadb0;
+}
+
+/* MAP */
+
+.map{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+.zone{
+  min-height:130px;
+  background:linear-gradient(145deg,#30263d,#211a29);
+  border:1px solid #51435e;
+  border-radius:16px;
+  padding:15px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.zone:hover{
+  transform:translateY(-2px);
+  border-color:var(--gold);
+}
+
+.zone-icon{
+  font-size:35px;
+}
+
+.zone-name{
+  font-size:17px;
+  margin-top:8px;
+}
+
+.chaos{
+  margin-top:12px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.chaosbar{
+  height:7px;
+  background:#120f17;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:5px;
+}
+
+.chaosfill{
+  height:100%;
+  background:var(--red);
+}
+
+/* INVENTORY */
+
+.inventory{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+
+.item{
+  background:var(--panel);
+  border:1px solid #4b3d59;
+  border-radius:14px;
+  padding:15px;
+  text-align:center;
+}
+
+.item-icon{
+  font-size:34px;
+}
+
+.item-name{
+  margin-top:8px;
+  font-size:14px;
+}
+
+.item-count{
+  color:var(--gold);
+  margin-top:5px;
+}
+
+/* ACHIEVEMENTS */
+
+.achievement{
+  background:var(--panel);
+  border:1px solid #4b3d59;
+  border-radius:14px;
+  padding:15px;
+  margin-bottom:10px;
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+
+.achievement-icon{
+  font-size:32px;
+}
+
+.achievement-title{
+  font-weight:bold;
+}
+
+.achievement-desc{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:4px;
+}
+
+/* LEADERBOARD */
+
+.rank{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  background:var(--panel);
+  border:1px solid #4b3d59;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:10px;
+}
+
+.rank-number{
+  font-size:25px;
+  width:35px;
+  text-align:center;
+  color:var(--gold);
+}
+
+.rank-player{
+  flex:1;
+}
+
+.rank-score{
+  color:var(--gold2);
+  font-weight:bold;
+}
+
+/* MOBILE */
+
+@media(max-width:700px){
+
+  .app{
+    padding:12px;
+  }
+
+  header{
+    align-items:flex-start;
+  }
+
+  .logo h1{
+    font-size:25px;
+  }
+
+  .logo-icon{
+    font-size:34px;
+  }
+
+  .season{
+    font-size:11px;
+    padding:8px;
+  }
+
+  .players{
+    grid-template-columns:1fr;
+  }
+
+  .map{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .inventory{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .quest-top{
+    flex-direction:column;
+  }
+
+  .quest-reward{
+    text-align:left;
+  }
+}
+</style>
 </head>
+
 <body>
 
-  <h1>🏰 CASA QUEST</h1>
-  <p>La nostra casa. Il nostro dungeon. Le nostre quest.</p>
+<div class="app">
 
-</body>
-</html>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏰</div>
+    <div>
+      <h1>CASA QUEST</h1>
+      <p>La nostra casa. Il nostro dungeon.</p>
+    </div>
+  </div>
+
+  <div class="season">
+    STAGIONE<br>
+    <strong>01 · Settimana 1</strong>
+  </div>
+</header>
+
+
+<!-- PLAYERS -->
+
+<div class="players">
+
+  <div class="player">
+    <div class="player-top">
+      <div>
+        <div class="player-name">⚔️ Giulia</div>
+        <div class="level" id="giuliaLevel">Livello 1</div>
+      </div>
+      <div class="avatar">🧙‍♀️</div>
+    </div>
+
+    <div class="stat-row">
+      <span>XP</span>
+      <strong id="giuliaXP">0 / 100</strong>
+    </div>
+
+    <div class="xpbar">
+      <div class="xpfill" id="giuliaBar"></div>
+    </div>
+
+    <div class="stat-row">
+      <span>🪙 Monete</span>
+      <strong id="giuliaCoins">50</strong>
+    </div>
+  </div>
+
+
+  <div class="player">
+    <div class="player-top">
+      <div>
+        <div class="player-name">🛡️ Diego</div>
+        <div class="level" id="diegoLevel">Livello 1</div>
+      </div>
+      <div class="avatar">🧝‍♂️</div>
+    </div>
+
+    <div class="stat-row">
+      <span>XP</span>
+      <strong id="diegoXP">0 / 100</strong>
+    </div>
+
+    <div class="xpbar">
+      <div class="xpfill" id="diegoBar"></div>
+    </div>
+
+    <div class="stat-row">
+      <span>🪙 Monete</span>
+      <strong id="diegoCoins">50</strong>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- COUPLE STREAK -->
+
+<div class="streak">
+  <div class="streak-title">🔥 Couple Streak</div>
+  <div class="st
+    
