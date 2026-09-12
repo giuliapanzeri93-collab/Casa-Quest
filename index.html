@@ -757,8 +757,18 @@
           </div>
 
           <div class="card">
-            <h3>🤝 Quest condivise / contese</h3>
+            <h3>⚔️ Quest contese</h3>
+            <div id="contestedQuests"><div class="muted">Caricamento quest...</div></div>
+          </div>
+
+          <div class="card">
+            <h3>🤝 Quest condivise</h3>
             <div id="sharedQuests"><div class="muted">Caricamento quest...</div></div>
+          </div>
+
+          <div class="card">
+            <h3>👑 Boss</h3>
+            <div id="bossQuests"><div class="muted">Caricamento boss...</div></div>
           </div>
         </div>
 
@@ -1112,17 +1122,58 @@
         <button data-complete="${q.id}">Completa</button></div></div>`;
     }
 
+    function ownershipLabel(value){
+      const v=String(value||'').toLowerCase();
+      if(v==='giulia') return '🧙‍♀️ Giulia';
+      if(v==='diego') return '🧝‍♂️ Diego';
+      if(v==='shared') return '🤝 Condivisa';
+      if(v==='contested') return '⚔️ Contesa';
+      return value || 'Condivisa';
+    }
+
+    function questCard(q){
+      const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
+      const boss=q.boss ? '<span class="tag">BOSS</span>' : '';
+      const owner=ownershipLabel(q.ownership);
+      const freqLabels={daily:'Daily',weekly:'Weekly',recurring:'Ricorrente',occasional:'Occasionale'};
+      const freq=freqLabels[q.frequency] || q.frequency || 'Occasionale';
+      return `<div class="quest ${q.urgent?'urgent':''}">
+        <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
+        <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
+        ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
+        <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
+        <div class="quest-bottom"><span class="quest-meta">${esc(freq)}</span>
+        <button data-complete="${q.id}">Completa</button></div></div>`;
+    }
+
     async function loadQuests(){
-      const my=$("myQuests"), shared=$("sharedQuests");
+      const my=$("myQuests"), contested=$("contestedQuests"), shared=$("sharedQuests"), boss=$("bossQuests");
       const {data,error}=await supabaseClient.from("quests").select("*").eq("active",true).order("created_at",{ascending:false});
-      if(error){ console.error(error); my.innerHTML='<div class="muted">Impossibile caricare le quest.</div>'; shared.innerHTML=''; return; }
+      if(error){
+        console.error(error);
+        my.innerHTML='<div class="muted">Impossibile caricare le quest.</div>';
+        contested.innerHTML=''; shared.innerHTML=''; boss.innerHTML='';
+        return;
+      }
+
       currentQuests=data||[];
       renderManagementQuests();
-      const me=currentPlayers.find(p=>p.id===currentUser.id);
-      const mine=currentQuests.filter(q=>questCanBeDone(q) && String(q.ownership||'').toLowerCase() !== 'shared' && String(q.ownership||'').toLowerCase() !== 'contested');
-      const sh=currentQuests.filter(q=>!mine.includes(q));
+
+      const myName=currentPlayers.find(p=>p.id===currentUser.id)?.name;
+      const visible=currentQuests.filter(q=>questCanBeDone(q));
+      const mine=visible.filter(q=>{
+        const o=String(q.ownership||'').toLowerCase();
+        return !q.boss && ((myName==='Giulia' && o==='giulia') || (myName==='Diego' && o==='diego'));
+      });
+      const cont=visible.filter(q=>!q.boss && String(q.ownership||'').toLowerCase()==='contested');
+      const sh=visible.filter(q=>!q.boss && String(q.ownership||'').toLowerCase()==='shared');
+      const bosses=visible.filter(q=>q.boss);
+
       my.innerHTML=mine.length?mine.map(questCard).join(''):'<div class="muted">Nessuna quest personale disponibile.</div>';
+      contested.innerHTML=cont.length?cont.map(questCard).join(''):'<div class="muted">Nessuna quest contesa disponibile.</div>';
       shared.innerHTML=sh.length?sh.map(questCard).join(''):'<div class="muted">Nessuna quest condivisa disponibile.</div>';
+      boss.innerHTML=bosses.length?bosses.map(questCard).join(''):'<div class="muted">Nessun Boss disponibile.</div>';
+
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
     }
 
