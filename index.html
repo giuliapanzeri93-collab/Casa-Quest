@@ -491,9 +491,191 @@ header{
 
   console.log("Casa Quest → Supabase collegato!");
 </script>
-<body>
+<script>
+  const loginScreen = document.getElementById("loginScreen");
+  const mainApp = document.getElementById("mainApp");
+  const loginButton = document.getElementById("loginButton");
+  const loginMessage = document.getElementById("loginMessage");
 
-<div class="app">
+  async function loadCasaQuest() {
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      loginScreen.style.display = "flex";
+      mainApp.style.display = "none";
+      return;
+    }
+
+    const { data: player, error } = await supabaseClient
+      .from("players")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    if (error || !player) {
+      loginScreen.style.display = "flex";
+      mainApp.style.display = "none";
+      loginMessage.textContent =
+        "Account trovato, ma personaggio non trovato.";
+      return;
+    }
+
+    loginScreen.style.display = "none";
+    mainApp.style.display = "block";
+
+    console.log("Personaggio caricato:", player);
+
+    // Aggiorna la scheda del giocatore
+    if (player.name === "Giulia") {
+      document.getElementById("giuliaLevel").textContent =
+        "Livello " + player.level;
+
+      document.getElementById("giuliaXP").textContent =
+        player.xp + " / 100";
+
+      document.getElementById("giuliaCoins").textContent =
+        player.coins;
+    }
+
+    if (player.name === "Diego") {
+      document.getElementById("diegoLevel").textContent =
+        "Livello " + player.level;
+
+      document.getElementById("diegoXP").textContent =
+        player.xp + " / 100";
+
+      document.getElementById("diegoCoins").textContent =
+        player.coins;
+    }
+  }
+
+  loginButton.addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    loginMessage.textContent = "";
+
+    if (!email || !password) {
+      loginMessage.textContent = "Inserisci email e password.";
+      return;
+    }
+
+    loginButton.disabled = true;
+    loginButton.textContent = "ACCESSO...";
+
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      loginMessage.textContent = error.message;
+      loginButton.disabled = false;
+      loginButton.textContent = "ENTRA NEL DUNGEON";
+      return;
+    }
+
+    await loadCasaQuest();
+
+    loginButton.disabled = false;
+    loginButton.textContent = "ENTRA NEL DUNGEON";
+  });
+
+  supabaseClient.auth.onAuthStateChange(() => {
+    loadCasaQuest();
+  });
+
+  loadCasaQuest();
+</script>
+  <body>
+
+<div id="loginScreen" style="
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+">
+  <div style="
+    width:100%;
+    max-width:420px;
+    background:#171717;
+    border:1px solid #333;
+    border-radius:20px;
+    padding:30px;
+    text-align:center;
+  ">
+    <div style="font-size:48px;margin-bottom:10px;">🏰</div>
+
+    <h1 style="margin-bottom:6px;">CASA QUEST</h1>
+    <p style="opacity:.7;margin-bottom:28px;">
+      Accedi al tuo personaggio
+    </p>
+
+    <input
+      id="loginEmail"
+      type="email"
+      placeholder="Email"
+      autocomplete="email"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        padding:14px;
+        margin-bottom:12px;
+        border-radius:10px;
+        border:1px solid #444;
+        background:#222;
+        color:white;
+        font-size:16px;
+      "
+    >
+
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        padding:14px;
+        margin-bottom:16px;
+        border-radius:10px;
+        border:1px solid #444;
+        background:#222;
+        color:white;
+        font-size:16px;
+      "
+    >
+
+    <button
+      id="loginButton"
+      style="
+        width:100%;
+        padding:14px;
+        border:0;
+        border-radius:10px;
+        background:#c9a44c;
+        color:#111;
+        font-size:16px;
+        font-weight:bold;
+        cursor:pointer;
+      "
+    >
+      ENTRA NEL DUNGEON
+    </button>
+
+    <p id="loginMessage" style="
+      margin-top:16px;
+      color:#e88;
+      min-height:20px;
+    "></p>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none;">
 
 <header>
   <div class="logo">
