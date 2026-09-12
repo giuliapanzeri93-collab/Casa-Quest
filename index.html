@@ -584,6 +584,18 @@
       border-color:#6b3438;
     }
 
+    /* DAILY QUEST PLAN */
+    .daily-plan-head{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;flex-wrap:wrap}
+    .budget-box{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);padding:9px 11px;border-radius:12px}
+    .budget-box input{width:82px;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:#17131f;color:var(--text)}
+    .budget-box button{padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--gold2)}
+    .budget-summary{margin-top:8px;color:var(--muted);font-size:13px}
+    .frequency-title{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .frequency-title small{color:var(--muted);font-size:12px;font-weight:normal}
+    .empty-plan{padding:12px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
+    .not-selected{opacity:.78}
+    .done-note{color:var(--green);font-size:13px}
+
     /* MOBILE */
     @media(max-width:700px){
       .app{padding:12px}
@@ -749,30 +761,52 @@
     <section class="section active" id="quests">
       <div class="section-title">⚔️ Quest del Dungeon</div>
 
+      <div class="card">
+        <div class="daily-plan-head">
+          <div>
+            <h3 style="margin-bottom:5px">🎯 Quest del giorno</h3>
+            <div class="muted">Il gioco sceglie le quest disponibili rispettando il tempo che hai oggi.</div>
+            <div class="budget-summary" id="dailyPlanSummary">Calcolo del piano...</div>
+          </div>
+          <div class="budget-box">
+            <span>⏱️ Tempo disponibile</span>
+            <input id="dailyBudgetMinutes" type="number" min="15" max="600" step="15" value="120" aria-label="Minuti disponibili oggi">
+            <span>min</span>
+            <button id="regenerateDailyPlan" type="button">🎲 Genera</button>
+          </div>
+        </div>
+        <div id="dailyQuests" style="margin-top:15px"><div class="muted">Calcolo del piano...</div></div>
+      </div>
+
       <div class="section-grid">
         <div>
           <div class="card">
-            <h3>⚔️ Le tue quest</h3>
-            <div id="myQuests"><div class="muted">Caricamento quest...</div></div>
+            <div class="frequency-title"><h3>📅 Daily disponibili</h3><small>Una volta completate oggi spariscono</small></div>
+            <div id="dailyAvailable"><div class="muted">Caricamento...</div></div>
           </div>
 
           <div class="card">
-            <h3>⚔️ Quest contese</h3>
-            <div id="contestedQuests"><div class="muted">Caricamento quest...</div></div>
+            <div class="frequency-title"><h3>🔁 Ricorrenti disponibili</h3><small>Rientrano nelle proposte dei giorni successivi</small></div>
+            <div id="recurringAvailable"><div class="muted">Caricamento...</div></div>
           </div>
 
           <div class="card">
-            <h3>🤝 Quest condivise</h3>
-            <div id="sharedQuests"><div class="muted">Caricamento quest...</div></div>
+            <div class="frequency-title"><h3>📆 Weekly disponibili</h3><small>Una volta completate questa settimana spariscono</small></div>
+            <div id="weeklyAvailable"><div class="muted">Caricamento...</div></div>
           </div>
 
           <div class="card">
-            <h3>👑 Boss</h3>
-            <div id="bossQuests"><div class="muted">Caricamento boss...</div></div>
+            <div class="frequency-title"><h3>🗃️ Occasionali disponibili</h3><small>Spariscono definitivamente dopo il completamento</small></div>
+            <div id="occasionalAvailable"><div class="muted">Caricamento...</div></div>
           </div>
         </div>
 
         <div>
+          <div class="card">
+            <h3>👑 Boss</h3>
+            <div id="bossQuests"><div class="muted">Caricamento boss...</div></div>
+          </div>
+
           <div class="card">
             <h3>📥 Da approvare</h3>
             <div id="pendingApprovals"><div class="muted">Caricamento...</div></div>
@@ -780,7 +814,7 @@
 
           <div class="card">
             <h3>📜 Come funziona</h3>
-            <p class="muted">Scegli una quest, indica quanti minuti hai impiegato e invia la prova. L'altra persona la approva: solo allora XP e monete vengono assegnati.</p>
+            <p class="muted">Le quest vengono proposte in base alla frequenza e al tempo disponibile. Una quest completata sparisce dal piano corrente; se viene rifiutata torna disponibile.</p>
             <div class="connection" id="connectionStatus">Connessione al dungeon in corso...</div>
           </div>
         </div>
@@ -1104,74 +1138,132 @@
 
     function questCanBeDone(q){
       const ownership=String(q.ownership||"").toLowerCase();
-      if(ownership.includes("giulia") && currentUser && currentPlayers.find(p=>p.id===currentUser.id)?.name !== "Giulia") return false;
-      if(ownership.includes("diego") && currentUser && currentPlayers.find(p=>p.id===currentUser.id)?.name !== "Diego") return false;
+      const myName=currentPlayers.find(p=>p.id===currentUser?.id)?.name;
+      if(ownership==='giulia' && myName!=='Giulia') return false;
+      if(ownership==='diego' && myName!=='Diego') return false;
       return true;
     }
 
-    function questCard(q){
-      const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
-      const boss=q.boss ? '<span class="tag">BOSS</span>' : '';
-      const owner=q.ownership || "condivisa";
-      return `<div class="quest ${q.urgent?'urgent':''}">
-        <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
-        <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
-        ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
-        <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
-        <div class="quest-bottom"><span class="quest-meta">${esc(q.frequency||'occasional')}</span>
-        <button data-complete="${q.id}">Completa</button></div></div>`;
+    function frequencyLabel(value){
+      return ({daily:'Daily',weekly:'Weekly',recurring:'Ricorrente',occasional:'Occasionale'})[value] || value || 'Occasionale';
     }
 
-    function ownershipLabel(value){
-      const v=String(value||'').toLowerCase();
-      if(v==='giulia') return '🧙‍♀️ Giulia';
-      if(v==='diego') return '🧝‍♂️ Diego';
-      if(v==='shared') return '🤝 Condivisa';
-      if(v==='contested') return '⚔️ Contesa';
-      return value || 'Condivisa';
+    function dateKey(date){
+      const d=date instanceof Date?date:new Date(date);
+      const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function isoWeekKey(date){
+      const d=new Date(date);
+      d.setHours(0,0,0,0);
+      const day=d.getDay()||7;
+      d.setDate(d.getDate()+4-day);
+      const yearStart=new Date(d.getFullYear(),0,1);
+      const week=Math.ceil((((d-yearStart)/86400000)+1)/7);
+      return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+    }
+
+    function completionBlocksQuest(q, completionRows){
+      const rows=(completionRows||[]).filter(c=>c.quest_id===q.id && ['pending','approved','auto_approved'].includes(c.status));
+      if(!rows.length) return false;
+      if(q.frequency==='occasional') return true;
+      if(q.frequency==='daily' || q.frequency==='recurring') return rows.some(c=>dateKey(c.completed_at||c.submitted_at)===dateKey(new Date()));
+      if(q.frequency==='weekly') return rows.some(c=>isoWeekKey(c.completed_at||c.submitted_at)===isoWeekKey(new Date()));
+      return false;
     }
 
     function questCard(q){
       const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
       const boss=q.boss ? '<span class="tag">BOSS</span>' : '';
       const owner=ownershipLabel(q.ownership);
-      const freqLabels={daily:'Daily',weekly:'Weekly',recurring:'Ricorrente',occasional:'Occasionale'};
-      const freq=freqLabels[q.frequency] || q.frequency || 'Occasionale';
       return `<div class="quest ${q.urgent?'urgent':''}">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
         <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
         ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
         <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
-        <div class="quest-bottom"><span class="quest-meta">${esc(freq)}</span>
+        <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
         <button data-complete="${q.id}">Completa</button></div></div>`;
     }
 
+    function getDailyBudget(){
+      const raw=Number(localStorage.getItem(`casaQuestBudget_${currentUser?.id}`)||120);
+      return Math.min(Math.max(Number.isFinite(raw)?raw:120,15),600);
+    }
+
+    function saveDailyBudget(){
+      const value=Math.min(Math.max(Number($('dailyBudgetMinutes').value)||120,15),600);
+      $('dailyBudgetMinutes').value=value;
+      if(currentUser) localStorage.setItem(`casaQuestBudget_${currentUser.id}`,String(value));
+      return value;
+    }
+
+    function buildDailyPlan(candidates,budget){
+      const priorities={daily:100,weekly:85,recurring:65,occasional:35};
+      const shuffled=[...candidates].sort((a,b)=>{
+        const pa=priorities[a.frequency]||0, pb=priorities[b.frequency]||0;
+        if(pb!==pa) return pb-pa;
+        if(Number(b.difficulty||1)!==Number(a.difficulty||1)) return Number(b.difficulty||1)-Number(a.difficulty||1);
+        return Math.random()-.5;
+      });
+      const chosen=[]; let total=0;
+      for(const q of shuffled){
+        const mins=Math.max(1,Number(q.estimated_minutes||10));
+        if(total+mins<=budget){chosen.push(q);total+=mins;}
+      }
+      // If nothing fits, pick the shortest quest rather than showing an empty plan.
+      if(!chosen.length && shuffled.length){
+        chosen.push([...shuffled].sort((a,b)=>Number(a.estimated_minutes||10)-Number(b.estimated_minutes||10))[0]);
+        total=Number(chosen[0].estimated_minutes||10);
+      }
+      return {chosen,total};
+    }
+
+    function renderDailyPlan(candidates,budget){
+      const plan=buildDailyPlan(candidates,budget);
+      const box=$('dailyQuests');
+      const chosenIds=new Set(plan.chosen.map(q=>q.id));
+      box.innerHTML=plan.chosen.length ? plan.chosen.map(questCard).join('') : '<div class="empty-plan">🎉 Nessuna quest disponibile: il dungeon è stranamente in ordine.</div>';
+      $('dailyPlanSummary').textContent=plan.chosen.length
+        ? `${plan.chosen.length} quest · circa ${plan.total} min su ${budget} min disponibili · ${Math.max(0,budget-plan.total)} min liberi`
+        : `0 quest · ${budget} min disponibili`;
+
+      document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
+      return chosenIds;
+    }
+
     async function loadQuests(){
-      const my=$("myQuests"), contested=$("contestedQuests"), shared=$("sharedQuests"), boss=$("bossQuests");
-      const {data,error}=await supabaseClient.from("quests").select("*").eq("active",true).order("created_at",{ascending:false});
+      const dailyBox=$('dailyAvailable'), recurringBox=$('recurringAvailable'), weeklyBox=$('weeklyAvailable'), occasionalBox=$('occasionalAvailable'), boss=$('bossQuests');
+      const {data,error}=await supabaseClient.from('quests').select('*').eq('active',true).order('created_at',{ascending:false});
       if(error){
         console.error(error);
-        my.innerHTML='<div class="muted">Impossibile caricare le quest.</div>';
-        contested.innerHTML=''; shared.innerHTML=''; boss.innerHTML='';
+        dailyBox.innerHTML='<div class="muted">Impossibile caricare le quest.</div>';
+        recurringBox.innerHTML=''; weeklyBox.innerHTML=''; occasionalBox.innerHTML=''; boss.innerHTML='';
         return;
       }
+
+      const {data:completions,error:completionError}=await supabaseClient.from('quest_completions').select('id,quest_id,player_id,completed_at,submitted_at,status');
+      if(completionError) console.error(completionError);
 
       currentQuests=data||[];
       renderManagementQuests();
 
-      const myName=currentPlayers.find(p=>p.id===currentUser.id)?.name;
-      const visible=currentQuests.filter(q=>questCanBeDone(q));
-      const mine=visible.filter(q=>{
-        const o=String(q.ownership||'').toLowerCase();
-        return !q.boss && ((myName==='Giulia' && o==='giulia') || (myName==='Diego' && o==='diego'));
-      });
-      const cont=visible.filter(q=>!q.boss && String(q.ownership||'').toLowerCase()==='contested');
-      const sh=visible.filter(q=>!q.boss && String(q.ownership||'').toLowerCase()==='shared');
+      const visible=currentQuests.filter(q=>questCanBeDone(q) && !completionBlocksQuest(q,completions||[]));
+      const normal=visible.filter(q=>!q.boss);
+      const daily=normal.filter(q=>q.frequency==='daily');
+      const recurring=normal.filter(q=>q.frequency==='recurring');
+      const weekly=normal.filter(q=>q.frequency==='weekly');
+      const occasional=normal.filter(q=>q.frequency==='occasional');
       const bosses=visible.filter(q=>q.boss);
 
-      my.innerHTML=mine.length?mine.map(questCard).join(''):'<div class="muted">Nessuna quest personale disponibile.</div>';
-      contested.innerHTML=cont.length?cont.map(questCard).join(''):'<div class="muted">Nessuna quest contesa disponibile.</div>';
-      shared.innerHTML=sh.length?sh.map(questCard).join(''):'<div class="muted">Nessuna quest condivisa disponibile.</div>';
+      const budget=saveDailyBudget();
+      $('dailyBudgetMinutes').value=budget;
+      renderDailyPlan(normal,budget);
+
+      dailyBox.innerHTML=daily.length?daily.map(questCard).join(''):'<div class="muted">Nessuna Daily disponibile oggi.</div>';
+      recurringBox.innerHTML=recurring.length?recurring.map(questCard).join(''):'<div class="muted">Nessuna quest ricorrente disponibile oggi.</div>';
+      weeklyBox.innerHTML=weekly.length?weekly.map(questCard).join(''):'<div class="muted">Nessuna Weekly disponibile questa settimana.</div>';
+      occasionalBox.innerHTML=occasional.length?occasional.map(questCard).join(''):'<div class="muted">Nessuna quest occasionale disponibile.</div>';
       boss.innerHTML=bosses.length?bosses.map(questCard).join(''):'<div class="muted">Nessun Boss disponibile.</div>';
 
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
@@ -1210,14 +1302,14 @@
       const {data,error}=await supabaseClient.rpc("submit_quest_completion",{p_quest_id:selectedQuest.id,p_time_minutes:mins});
       btn.disabled=false; btn.textContent="Invia completamento";
       if(error){console.error(error);alert("Non sono riuscita a inviare la quest: "+error.message);return;}
-      closeCompletion(); await loadApprovals(); setConnectionStatus("✅ Completamento inviato: aspetta l'approvazione dell'altro giocatore.","ok");
+      closeCompletion(); await loadQuests(); await loadApprovals(); setConnectionStatus("✅ Completamento inviato: aspetta l'approvazione dell'altro giocatore.","ok");
     }
 
     async function reviewCompletion(id,approve){
       let reason=null; if(!approve){reason=prompt("Motivo del rifiuto (facoltativo):")}
       const {error}=await supabaseClient.rpc("review_quest_completion",{p_completion_id:id,p_approve:approve,p_rejection_reason:reason});
       if(error){console.error(error);alert("Operazione non riuscita: "+error.message);return;}
-      await loadApprovals(); await loadPlayers();
+      await loadApprovals(); await loadPlayers(); await loadQuests();
       setConnectionStatus(approve?"✅ Quest approvata e ricompensa assegnata.":"Quest rifiutata.",approve?"ok":"error");
     }
 
@@ -1436,6 +1528,8 @@
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
+      $("dailyBudgetMinutes").addEventListener("change",()=>{ saveDailyBudget(); loadQuests(); });
+      $("regenerateDailyPlan").addEventListener("click",()=>{ saveDailyBudget(); loadQuests(); });
       initNavigation();
 
       try{
