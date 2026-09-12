@@ -1252,8 +1252,21 @@
       };
       if(!requested.new_title){alert('Il nome della quest è obbligatorio.');return;}
       const btn=$("submitQuestChange"); btn.disabled=true; btn.textContent='INVIO...';
-      const {error}=await supabaseClient.from('quest_change_requests').insert({
-        quest_id:quest.id, requested_by:currentUser.id, ...requested, status:'pending'
+      const {data:changeRequest,error}=await supabaseClient.rpc('submit_quest_change_request',{
+        p_quest_id:quest.id,
+        p_new_title:requested.new_title,
+        p_new_description:requested.new_description,
+        p_new_zone:requested.new_zone,
+        p_new_category:requested.new_category,
+        p_new_difficulty:requested.new_difficulty,
+        p_new_base_xp:requested.new_base_xp,
+        p_new_base_coins:requested.new_base_coins,
+        p_new_owner_id:requested.new_owner_id,
+        p_new_frequency:requested.new_frequency,
+        p_new_estimated_minutes:requested.new_estimated_minutes,
+        p_new_counts_for_couple_streak:requested.new_counts_for_couple_streak,
+        p_new_transferable:requested.new_transferable,
+        p_new_quest_type:requested.new_quest_type
       });
       btn.disabled=false; btn.textContent='Invia modifica';
       if(error){console.error(error);alert('Non sono riuscita a inviare la modifica: '+error.message);return;}
