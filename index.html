@@ -1144,6 +1144,15 @@
       return true;
     }
 
+    function ownershipLabel(value){
+      const v=String(value||"").toLowerCase();
+      if(v==="giulia") return "🧙‍♀️ Giulia";
+      if(v==="diego") return "🧝‍♂️ Diego";
+      if(v==="shared") return "🤝 Condivisa";
+      if(v==="contested") return "⚔️ Contesa";
+      return value || "Contesa";
+    }
+
     function frequencyLabel(value){
       return ({daily:'Daily',weekly:'Weekly',recurring:'Ricorrente',occasional:'Occasionale'})[value] || value || 'Occasionale';
     }
