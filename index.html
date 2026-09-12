@@ -870,6 +870,12 @@
           <p class="muted">Qui vedrete le quest già presenti nella vostra casa.</p>
           <div id="managementQuestList" class="management-list"><div class="muted">Caricamento...</div></div>
         </div>
+
+        <div class="card">
+          <h3>📨 Modifiche da approvare</h3>
+          <p class="muted">Le modifiche proposte dall'altro giocatore diventano effettive solo dopo l'approvazione.</p>
+          <div id="pendingQuestChanges"><div class="muted">Caricamento...</div></div>
+        </div>
       </div>
     </section>
 
@@ -1001,6 +1007,29 @@
       </div>
     </section>
 
+  </div>
+
+  <div id="editQuestModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1100;align-items:center;justify-content:center;padding:20px;overflow:auto;">
+    <div class="card" style="width:100%;max-width:620px;margin:0;box-shadow:0 20px 70px #000;">
+      <h3>✏️ Proponi modifica</h3>
+      <p class="muted">La modifica non sarà applicata subito: l'altro giocatore dovrà approvarla.</p>
+      <form id="editQuestForm">
+        <input id="editQuestId" type="hidden">
+        <div class="form-grid">
+          <div class="form-field full"><label>Nome</label><input id="editQuestTitle" required></div>
+          <div class="form-field full"><label>Descrizione</label><textarea id="editQuestDescription"></textarea></div>
+          <div class="form-field"><label>Zona</label><select id="editQuestZone"><option>Casa</option><option>Cucina</option><option>Zona giorno</option><option>Camere</option><option>Bagno</option><option>Esterno</option><option>Territorio Polly</option></select></div>
+          <div class="form-field"><label>Categoria</label><input id="editQuestCategory"></div>
+          <div class="form-field"><label>Difficoltà</label><input id="editQuestDifficulty" type="number" min="1" max="5"></div>
+          <div class="form-field"><label>Tempo stimato</label><input id="editQuestMinutes" type="number" min="1"></div>
+          <div class="form-field"><label>XP</label><input id="editQuestXP" type="number" min="0"></div>
+          <div class="form-field"><label>Monete</label><input id="editQuestCoins" type="number" min="0"></div>
+          <div class="form-field"><label>Frequenza</label><select id="editQuestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="recurring">Ricorrente</option><option value="occasional">Occasionale</option></select></div>
+          <div class="form-field full"><div class="check-row"><label><input id="editQuestStreak" type="checkbox"> Couple Streak</label><label><input id="editQuestTransferable" type="checkbox"> Trasferibile</label></div></div>
+        </div>
+        <div class="form-actions"><button type="button" class="small-button" id="cancelEditQuest">Annulla</button><button type="submit" class="primary-button" id="submitQuestChange">Invia modifica</button></div>
+      </form>
+    </div>
   </div>
 
   <div id="completionModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1000;align-items:center;justify-content:center;padding:20px;">
@@ -1177,7 +1206,94 @@
         <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
         <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5</div>
+        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><button data-edit-quest="${q.id}">✏️ Modifica</button></div>
       </div>`).join('');
+      box.querySelectorAll('[data-edit-quest]').forEach(btn=>btn.addEventListener('click',()=>openEditQuest(btn.dataset.editQuest)));
+    }
+
+    function openEditQuest(id){
+      const q=currentQuests.find(x=>x.id===id);
+      if(!q)return;
+      $("editQuestId").value=q.id;
+      $("editQuestTitle").value=q.title||'';
+      $("editQuestDescription").value=q.description||'';
+      $("editQuestZone").value=q.zone||'Casa';
+      $("editQuestCategory").value=q.category||'Generale';
+      $("editQuestDifficulty").value=Number(q.difficulty||1);
+      $("editQuestMinutes").value=Number(q.estimated_minutes||10);
+      $("editQuestXP").value=Number(q.base_xp||0);
+      $("editQuestCoins").value=Number(q.base_coins||0);
+      $("editQuestFrequency").value=q.frequency||'occasional';
+      $("editQuestTransferable").checked=!!q.transferable;
+      $("editQuestStreak").checked=!!q.counts_for_couple_streak;
+      $("editQuestModal").style.display='flex';
+    }
+
+    function closeEditQuest(){ $("editQuestModal").style.display='none'; }
+
+    async function submitQuestChange(event){
+      event.preventDefault();
+      const quest=currentQuests.find(q=>q.id===$("editQuestId").value);
+      if(!quest)return;
+      const requested={
+        new_title:$("editQuestTitle").value.trim(),
+        new_description:$("editQuestDescription").value.trim(),
+        new_zone:$("editQuestZone").value,
+        new_category:$("editQuestCategory").value.trim()||'Generale',
+        new_difficulty:Number($("editQuestDifficulty").value),
+        new_base_xp:Number($("editQuestXP").value),
+        new_base_coins:Number($("editQuestCoins").value),
+        new_owner_id:null,
+        new_frequency:$("editQuestFrequency").value,
+        new_estimated_minutes:Number($("editQuestMinutes").value),
+        new_counts_for_couple_streak:$("editQuestStreak").checked,
+        new_transferable:$("editQuestTransferable").checked,
+        new_quest_type:quest.quest_type||'normal'
+      };
+      if(!requested.new_title){alert('Il nome della quest è obbligatorio.');return;}
+      const btn=$("submitQuestChange"); btn.disabled=true; btn.textContent='INVIO...';
+      const {error}=await supabaseClient.from('quest_change_requests').insert({
+        quest_id:quest.id, requested_by:currentUser.id, ...requested, status:'pending'
+      });
+      btn.disabled=false; btn.textContent='Invia modifica';
+      if(error){console.error(error);alert('Non sono riuscita a inviare la modifica: '+error.message);return;}
+      closeEditQuest();
+      await loadPendingQuestChanges();
+      setConnectionStatus('📨 Modifica inviata: ora deve essere approvata dall'altro giocatore.','ok');
+    }
+
+    async function loadPendingQuestChanges(){
+      const box=$("pendingQuestChanges");
+      const {data,error}=await supabaseClient.from('quest_change_requests')
+        .select('*, quests(title)')
+        .eq('status','pending')
+        .neq('requested_by',currentUser.id)
+        .order('created_at',{ascending:false});
+      if(error){console.error(error);box.innerHTML='<div class="muted">Impossibile leggere le richieste.</div>';return;}
+      box.innerHTML=(data&&data.length)?data.map(r=>{
+        const changes=[];
+        if(r.new_title!==null)changes.push('Nome: '+esc(r.new_title));
+        if(r.new_difficulty!==null)changes.push('Difficoltà: '+Number(r.new_difficulty)+'/5');
+        if(r.new_estimated_minutes!==null)changes.push('Tempo: '+Number(r.new_estimated_minutes)+' min');
+        if(r.new_base_xp!==null)changes.push('XP: '+Number(r.new_base_xp));
+        if(r.new_base_coins!==null)changes.push('Monete: '+Number(r.new_base_coins));
+        if(r.new_zone!==null)changes.push('Zona: '+esc(r.new_zone));
+        if(r.new_frequency!==null)changes.push('Frequenza: '+esc(r.new_frequency));
+        return `<div class="quest"><div class="quest-name">✏️ Modifica: ${esc(r.quests?.title||'Quest')}</div>
+          <div class="quest-meta" style="margin-top:8px">${changes.join(' · ')}</div>
+          <div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-change-approve="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-change-approve="${r.id}" data-value="no">Rifiuta</button></span></div></div>`;
+      }).join(''):'<div class="muted">Nessuna modifica da approvare.</div>';
+      box.querySelectorAll('[data-change-approve]').forEach(btn=>btn.addEventListener('click',()=>reviewQuestChange(btn.dataset.changeApprove,btn.dataset.value==='yes')));
+    }
+
+    async function reviewQuestChange(id,approve){
+      let reason=null;
+      if(!approve)reason=prompt('Motivo del rifiuto (facoltativo):');
+      const {error}=await supabaseClient.rpc('review_quest_change',{p_request_id:id,p_approve:approve,p_rejection_reason:reason});
+      if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
+      await loadQuests();
+      await loadPendingQuestChanges();
+      setConnectionStatus(approve?'✅ Modifica approvata e applicata.':'❌ Modifica rifiutata.',approve?'ok':'error');
     }
 
     async function createQuestFromForm(event){
@@ -1218,7 +1334,7 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
     }
 
     async function login(){
@@ -1253,6 +1369,8 @@
       $("completionMinutes").addEventListener("input",updatePreview);
       $("confirmCompletion").addEventListener("click",submitCompletion);
       $("questForm").addEventListener("submit",createQuestFromForm);
+      $("editQuestForm").addEventListener("submit",submitQuestChange);
+      $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
       initNavigation();
 
