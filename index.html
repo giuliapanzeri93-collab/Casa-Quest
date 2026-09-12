@@ -1,757 +1,1098 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Casa Quest</title>
-
-<style>
-:root{
-  --bg:#17131f;
-  --panel:#241d30;
-  --panel2:#30263d;
-  --gold:#e8b85c;
-  --gold2:#f4d58b;
-  --text:#f5f1e8;
-  --muted:#aaa0b5;
-  --green:#6fcf97;
-  --red:#e56b6f;
-  --blue:#75aee8;
-}
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  background:
-    radial-gradient(circle at top,#392a49 0%,#17131f 48%);
-  color:var(--text);
-  font-family:Georgia,serif;
-}
-
-button{
-  font:inherit;
-}
-
-.app{
-  max-width:1100px;
-  margin:auto;
-  padding:18px;
-}
-
-/* HEADER */
-
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:15px;
-  margin-bottom:20px;
-}
-
-.logo{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.logo-icon{
-  font-size:42px;
-}
-
-.logo h1{
-  margin:0;
-  font-size:30px;
-  color:var(--gold2);
-}
-
-.logo p{
-  margin:3px 0 0;
-  color:var(--muted);
-  font-size:14px;
-}
-
-.season{
-  background:var(--panel);
-  border:1px solid #554565;
-  padding:10px 14px;
-  border-radius:12px;
-  text-align:center;
-}
-
-.season strong{
-  color:var(--gold);
-}
-
-/* PLAYER CARDS */
-
-.players{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-}
-
-.player{
-  background:linear-gradient(145deg,#2b2237,#201a2a);
-  border:1px solid #554565;
-  border-radius:18px;
-  padding:18px;
-  box-shadow:0 10px 30px #0005;
-}
-
-.player-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.avatar{
-  font-size:42px;
-}
-
-.player-name{
-  font-size:22px;
-  font-weight:bold;
-}
-
-.level{
-  color:var(--gold);
-  font-size:14px;
-}
-
-.stat-row{
-  display:flex;
-  justify-content:space-between;
-  margin-top:15px;
-  color:var(--muted);
-  font-size:14px;
-}
-
-.stat-row strong{
-  color:var(--text);
-}
-
-.xpbar{
-  height:10px;
-  background:#120f17;
-  border-radius:20px;
-  overflow:hidden;
-  margin-top:7px;
-}
-
-.xpfill{
-  height:100%;
-  width:0%;
-  background:linear-gradient(90deg,var(--gold),#fff0b0);
-  transition:.4s;
-}
-
-/* STREAK */
-
-.streak{
-  margin:18px 0;
-  background:linear-gradient(135deg,#402d22,#251b27);
-  border:1px solid #765137;
-  border-radius:18px;
-  padding:18px;
-  text-align:center;
-}
-
-.streak-title{
-  color:#ffcc78;
-  font-size:15px;
-  letter-spacing:1px;
-  text-transform:uppercase;
-}
-
-.streak-number{
-  font-size:46px;
-  font-weight:bold;
-  margin:5px 0;
-}
-
-.streak-sub{
-  color:var(--muted);
-}
-
-/* NAV */
-
-.nav{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  margin:18px 0;
-  padding-bottom:3px;
-}
-
-.nav button{
-  white-space:nowrap;
-  background:var(--panel);
-  color:var(--muted);
-  border:1px solid #4b3d59;
-  padding:10px 14px;
-  border-radius:12px;
-  cursor:pointer;
-}
-
-.nav button.active,
-.nav button:hover{
-  color:var(--gold2);
-  border-color:var(--gold);
-}
-
-/* SECTIONS */
-
-.section{
-  display:none;
-}
-
-.section.active{
-  display:block;
-}
-
-.section-title{
-  font-size:24px;
-  margin:10px 0 15px;
-  color:var(--gold2);
-}
-
-/* QUESTS */
-
-.quest{
-  background:var(--panel);
-  border:1px solid #4b3d59;
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:12px;
-}
-
-.quest.urgent{
-  border-color:var(--red);
-  box-shadow:0 0 18px #e56b6f22;
-}
-
-.quest-top{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-}
-
-.quest-name{
-  font-size:18px;
-  font-weight:bold;
-}
-
-.quest-meta{
-  color:var(--muted);
-  font-size:13px;
-  margin-top:5px;
-}
-
-.quest-reward{
-  color:var(--gold);
-  white-space:nowrap;
-  font-weight:bold;
-}
-
-.quest-bottom{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-top:14px;
-}
-
-.quest button{
-  background:var(--gold);
-  border:0;
-  color:#241b12;
-  font-weight:bold;
-  border-radius:10px;
-  padding:9px 13px;
-  cursor:pointer;
-}
-
-.quest button:hover{
-  background:var(--gold2);
-}
-
-.tag{
-  display:inline-block;
-  padding:4px 8px;
-  border-radius:8px;
-  font-size:11px;
-  margin-top:8px;
-  background:#3b3047;
-  color:var(--muted);
-}
-
-.tag.urgent-tag{
-  background:#522b32;
-  color:#ffadb0;
-}
-
-/* MAP */
-
-.map{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-}
-
-.zone{
-  min-height:130px;
-  background:linear-gradient(145deg,#30263d,#211a29);
-  border:1px solid #51435e;
-  border-radius:16px;
-  padding:15px;
-  cursor:pointer;
-  transition:.2s;
-}
-
-.zone:hover{
-  transform:translateY(-2px);
-  border-color:var(--gold);
-}
-
-.zone-icon{
-  font-size:35px;
-}
-
-.zone-name{
-  font-size:17px;
-  margin-top:8px;
-}
-
-.chaos{
-  margin-top:12px;
-  font-size:12px;
-  color:var(--muted);
-}
-
-.chaosbar{
-  height:7px;
-  background:#120f17;
-  border-radius:10px;
-  overflow:hidden;
-  margin-top:5px;
-}
-
-.chaosfill{
-  height:100%;
-  background:var(--red);
-}
-
-/* INVENTORY */
-
-.inventory{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-}
-
-.item{
-  background:var(--panel);
-  border:1px solid #4b3d59;
-  border-radius:14px;
-  padding:15px;
-  text-align:center;
-}
-
-.item-icon{
-  font-size:34px;
-}
-
-.item-name{
-  margin-top:8px;
-  font-size:14px;
-}
-
-.item-count{
-  color:var(--gold);
-  margin-top:5px;
-}
-
-/* ACHIEVEMENTS */
-
-.achievement{
-  background:var(--panel);
-  border:1px solid #4b3d59;
-  border-radius:14px;
-  padding:15px;
-  margin-bottom:10px;
-  display:flex;
-  gap:14px;
-  align-items:center;
-}
-
-.achievement-icon{
-  font-size:32px;
-}
-
-.achievement-title{
-  font-weight:bold;
-}
-
-.achievement-desc{
-  color:var(--muted);
-  font-size:13px;
-  margin-top:4px;
-}
-
-/* LEADERBOARD */
-
-.rank{
-  display:flex;
-  align-items:center;
-  gap:15px;
-  background:var(--panel);
-  border:1px solid #4b3d59;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:10px;
-}
-
-.rank-number{
-  font-size:25px;
-  width:35px;
-  text-align:center;
-  color:var(--gold);
-}
-
-.rank-player{
-  flex:1;
-}
-
-.rank-score{
-  color:var(--gold2);
-  font-weight:bold;
-}
-
-/* MOBILE */
-
-@media(max-width:700px){
-
-  .app{
-    padding:12px;
-  }
-
-  header{
-    align-items:flex-start;
-  }
-
-  .logo h1{
-    font-size:25px;
-  }
-
-  .logo-icon{
-    font-size:34px;
-  }
-
-  .season{
-    font-size:11px;
-    padding:8px;
-  }
-
-  .players{
-    grid-template-columns:1fr;
-  }
-
-  .map{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .inventory{
-    grid-template-columns:repeat(2,1fr);
-  }
-
-  .quest-top{
-    flex-direction:column;
-  }
-
-  .quest-reward{
-    text-align:left;
-  }
-}
-</style>
-</head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-  const SUPABASE_URL = "https://reltnnnwbiyefflbekts.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9SyUmLmAc0FweQoUZV_2eg_Cpdwlc7E";
-
-  const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-
-  console.log("Casa Quest → Supabase collegato!");
-</script>
-<script>
-  const loginScreen = document.getElementById("loginScreen");
-  const mainApp = document.getElementById("mainApp");
-  const loginButton = document.getElementById("loginButton");
-  const loginMessage = document.getElementById("loginMessage");
-
-  async function loadCasaQuest() {
-    const {
-      data: { session }
-    } = await supabaseClient.auth.getSession();
-
-    if (!session) {
-      loginScreen.style.display = "flex";
-      mainApp.style.display = "none";
-      return;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#17131f">
+  <title>Casa Quest</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#17131f;
+      --panel:#241d30;
+      --panel2:#30263d;
+      --gold:#e8b85c;
+      --gold2:#f4d58b;
+      --text:#f5f1e8;
+      --muted:#aaa0b5;
+      --green:#6fcf97;
+      --red:#e56b6f;
+      --blue:#75aee8;
+      --line:#554565;
     }
 
-    const { data: player, error } = await supabaseClient
-      .from("players")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
+    *{box-sizing:border-box}
 
-    if (error || !player) {
-      loginScreen.style.display = "flex";
-      mainApp.style.display = "none";
-      loginMessage.textContent =
-        "Account trovato, ma personaggio non trovato.";
-      return;
+    html,body{min-height:100%}
+
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at top,#392a49 0%,#17131f 48%);
+      color:var(--text);
+      font-family:Georgia,serif;
     }
 
-    loginScreen.style.display = "none";
-    mainApp.style.display = "block";
+    button,input{font:inherit}
 
-    console.log("Personaggio caricato:", player);
+    button{cursor:pointer}
 
-    // Aggiorna la scheda del giocatore
-    if (player.name === "Giulia") {
-      document.getElementById("giuliaLevel").textContent =
-        "Livello " + player.level;
-
-      document.getElementById("giuliaXP").textContent =
-        player.xp + " / 100";
-
-      document.getElementById("giuliaCoins").textContent =
-        player.coins;
+    /* LOGIN */
+    #loginScreen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
     }
 
-    if (player.name === "Diego") {
-      document.getElementById("diegoLevel").textContent =
-        "Livello " + player.level;
-
-      document.getElementById("diegoXP").textContent =
-        player.xp + " / 100";
-
-      document.getElementById("diegoCoins").textContent =
-        player.coins;
-    }
-  }
-
-  loginButton.addEventListener("click", async () => {
-    const email = document.getElementById("loginEmail").value.trim();
-    const password = document.getElementById("loginPassword").value;
-
-    loginMessage.textContent = "";
-
-    if (!email || !password) {
-      loginMessage.textContent = "Inserisci email e password.";
-      return;
+    .login-card{
+      width:100%;
+      max-width:420px;
+      background:#171717;
+      border:1px solid #333;
+      border-radius:20px;
+      padding:30px;
+      text-align:center;
+      box-shadow:0 20px 60px #0008;
     }
 
-    loginButton.disabled = true;
-    loginButton.textContent = "ACCESSO...";
-
-    const { error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      loginMessage.textContent = error.message;
-      loginButton.disabled = false;
-      loginButton.textContent = "ENTRA NEL DUNGEON";
-      return;
+    .login-icon{
+      font-size:48px;
+      margin-bottom:10px;
     }
 
-    await loadCasaQuest();
+    .login-card h1{
+      margin:0 0 6px;
+      color:var(--gold2);
+    }
 
-    loginButton.disabled = false;
-    loginButton.textContent = "ENTRA NEL DUNGEON";
-  });
+    .login-card p{
+      opacity:.7;
+      margin:0 0 28px;
+    }
 
-  supabaseClient.auth.onAuthStateChange(() => {
-    loadCasaQuest();
-  });
+    .login-card input{
+      width:100%;
+      padding:14px;
+      margin-bottom:12px;
+      border-radius:10px;
+      border:1px solid #444;
+      background:#222;
+      color:white;
+      font-size:16px;
+      outline:none;
+    }
 
-  loadCasaQuest();
-</script>
-  <body>
+    .login-card input:focus{
+      border-color:var(--gold);
+    }
 
-<div id="loginScreen" style="
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-">
-  <div style="
-    width:100%;
-    max-width:420px;
-    background:#171717;
-    border:1px solid #333;
-    border-radius:20px;
-    padding:30px;
-    text-align:center;
-  ">
-    <div style="font-size:48px;margin-bottom:10px;">🏰</div>
+    #loginButton{
+      width:100%;
+      padding:14px;
+      border:0;
+      border-radius:10px;
+      background:var(--gold);
+      color:#111;
+      font-size:16px;
+      font-weight:bold;
+      cursor:pointer;
+    }
 
-    <h1 style="margin-bottom:6px;">CASA QUEST</h1>
-    <p style="opacity:.7;margin-bottom:28px;">
-      Accedi al tuo personaggio
-    </p>
+    #loginButton:disabled{
+      opacity:.6;
+      cursor:wait;
+    }
 
-    <input
-      id="loginEmail"
-      type="email"
-      placeholder="Email"
-      autocomplete="email"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        padding:14px;
-        margin-bottom:12px;
-        border-radius:10px;
-        border:1px solid #444;
-        background:#222;
-        color:white;
-        font-size:16px;
-      "
-    >
-
-    <input
-      id="loginPassword"
-      type="password"
-      placeholder="Password"
-      autocomplete="current-password"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        padding:14px;
-        margin-bottom:16px;
-        border-radius:10px;
-        border:1px solid #444;
-        background:#222;
-        color:white;
-        font-size:16px;
-      "
-    >
-
-    <button
-      id="loginButton"
-      style="
-        width:100%;
-        padding:14px;
-        border:0;
-        border-radius:10px;
-        background:#c9a44c;
-        color:#111;
-        font-size:16px;
-        font-weight:bold;
-        cursor:pointer;
-      "
-    >
-      ENTRA NEL DUNGEON
-    </button>
-
-    <p id="loginMessage" style="
+    #loginMessage{
       margin-top:16px;
       color:#e88;
       min-height:20px;
-    "></p>
-  </div>
-</div>
+      font-size:14px;
+    }
 
-<div class="app" id="mainApp" style="display:none;">
+    /* APP */
+    #mainApp{
+      display:none;
+    }
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">🏰</div>
-    <div>
+    .app{
+      max-width:1100px;
+      margin:auto;
+      padding:18px;
+    }
+
+    /* HEADER */
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      margin-bottom:20px;
+    }
+
+    .logo{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .logo-icon{
+      font-size:42px;
+    }
+
+    .logo h1{
+      margin:0;
+      font-size:30px;
+      color:var(--gold2);
+    }
+
+    .logo p{
+      margin:3px 0 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .season{
+      background:var(--panel);
+      border:1px solid var(--line);
+      padding:10px 14px;
+      border-radius:12px;
+      text-align:center;
+      font-size:13px;
+    }
+
+    .season strong{
+      color:var(--gold);
+    }
+
+    .top-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-bottom:12px;
+    }
+
+    .small-button{
+      background:var(--panel);
+      color:var(--muted);
+      border:1px solid var(--line);
+      padding:8px 12px;
+      border-radius:10px;
+    }
+
+    .small-button:hover{
+      color:var(--gold2);
+      border-color:var(--gold);
+    }
+
+    /* PLAYER CARDS */
+    .players{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:15px;
+    }
+
+    .player{
+      background:linear-gradient(145deg,#2b2237,#201a2a);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 10px 30px #0005;
+    }
+
+    .player-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .avatar{
+      font-size:42px;
+    }
+
+    .player-name{
+      font-size:22px;
+      font-weight:bold;
+    }
+
+    .level{
+      color:var(--gold);
+      font-size:14px;
+    }
+
+    .stat-row{
+      display:flex;
+      justify-content:space-between;
+      margin-top:15px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .stat-row strong{
+      color:var(--text);
+    }
+
+    .xpbar{
+      height:10px;
+      background:#120f17;
+      border-radius:20px;
+      overflow:hidden;
+      margin-top:7px;
+    }
+
+    .xpfill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,var(--gold),#fff0b0);
+      transition:.4s;
+    }
+
+    /* STREAK */
+    .streak{
+      margin:18px 0;
+      background:linear-gradient(135deg,#402d22,#251b27);
+      border:1px solid #765137;
+      border-radius:18px;
+      padding:18px;
+      text-align:center;
+    }
+
+    .streak-title{
+      color:#ffcc78;
+      font-size:15px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .streak-number{
+      font-size:46px;
+      font-weight:bold;
+      margin:5px 0;
+    }
+
+    .streak-sub{
+      color:var(--muted);
+    }
+
+    /* NAV */
+    .nav{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      margin:18px 0;
+      padding-bottom:3px;
+    }
+
+    .nav button{
+      white-space:nowrap;
+      background:var(--panel);
+      color:var(--muted);
+      border:1px solid var(--line);
+      padding:10px 14px;
+      border-radius:12px;
+    }
+
+    .nav button.active,
+    .nav button:hover{
+      color:var(--gold2);
+      border-color:var(--gold);
+    }
+
+    /* SECTIONS */
+    .section{
+      display:none;
+    }
+
+    .section.active{
+      display:block;
+    }
+
+    .section-title{
+      font-size:24px;
+      margin:10px 0 15px;
+      color:var(--gold2);
+    }
+
+    .section-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:15px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:15px;
+    }
+
+    .card h3{
+      margin:0 0 12px;
+      color:var(--gold2);
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    /* QUESTS */
+    .quest{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:12px;
+    }
+
+    .quest.urgent{
+      border-color:var(--red);
+      box-shadow:0 0 18px #e56b6f22;
+    }
+
+    .quest-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .quest-name{
+      font-size:18px;
+      font-weight:bold;
+    }
+
+    .quest-meta{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:5px;
+    }
+
+    .quest-reward{
+      color:var(--gold);
+      white-space:nowrap;
+      font-weight:bold;
+    }
+
+    .quest-bottom{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .quest button{
+      background:var(--gold);
+      border:0;
+      color:#241b12;
+      font-weight:bold;
+      border-radius:10px;
+      padding:9px 13px;
+    }
+
+    .quest button:hover{
+      background:var(--gold2);
+    }
+
+    .tag{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:8px;
+      font-size:11px;
+      margin-top:8px;
+      background:#3b3047;
+      color:var(--muted);
+    }
+
+    .tag.urgent-tag{
+      background:#522b32;
+      color:#ffadb0;
+    }
+
+    /* MAP */
+    .map{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+    }
+
+    .zone{
+      min-height:130px;
+      background:linear-gradient(145deg,#30263d,#211a29);
+      border:1px solid #51435e;
+      border-radius:16px;
+      padding:15px;
+    }
+
+    .zone-icon{
+      font-size:35px;
+    }
+
+    .zone-name{
+      font-size:17px;
+      margin-top:8px;
+    }
+
+    .chaos{
+      margin-top:12px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .chaosbar{
+      height:7px;
+      background:#120f17;
+      border-radius:10px;
+      overflow:hidden;
+      margin-top:5px;
+    }
+
+    .chaosfill{
+      height:100%;
+      background:var(--red);
+    }
+
+    /* INVENTORY */
+    .inventory{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+    }
+
+    .item{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:15px;
+      text-align:center;
+    }
+
+    .item-icon{
+      font-size:34px;
+    }
+
+    .item-name{
+      margin-top:8px;
+      font-size:14px;
+    }
+
+    .item-count{
+      color:var(--gold);
+      margin-top:5px;
+    }
+
+    /* ACHIEVEMENTS */
+    .achievement{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:15px;
+      margin-bottom:10px;
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+
+    .achievement-icon{
+      font-size:32px;
+    }
+
+    .achievement-title{
+      font-weight:bold;
+    }
+
+    .achievement-desc{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:4px;
+    }
+
+    /* LEADERBOARD */
+    .rank{
+      display:flex;
+      align-items:center;
+      gap:15px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      margin-bottom:10px;
+    }
+
+    .rank-number{
+      font-size:25px;
+      width:35px;
+      text-align:center;
+      color:var(--gold);
+    }
+
+    .rank-player{
+      flex:1;
+    }
+
+    .rank-score{
+      color:var(--gold2);
+      font-weight:bold;
+    }
+
+    .connection{
+      margin-top:15px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:#1d1924;
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+
+    .connection.ok{
+      color:var(--green);
+      border-color:#39634a;
+    }
+
+    .connection.error{
+      color:#ffadb0;
+      border-color:#6b3438;
+    }
+
+    /* MOBILE */
+    @media(max-width:700px){
+      .app{padding:12px}
+
+      header{
+        align-items:flex-start;
+      }
+
+      .logo h1{font-size:25px}
+      .logo-icon{font-size:34px}
+      .season{font-size:11px;padding:8px}
+
+      .players,
+      .section-grid{
+        grid-template-columns:1fr;
+      }
+
+      .map{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .inventory{
+        grid-template-columns:repeat(2,1fr);
+      }
+
+      .quest-top{
+        flex-direction:column;
+      }
+
+      .quest-reward{
+        text-align:left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       LOGIN
+       ========================= -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-icon">🏰</div>
       <h1>CASA QUEST</h1>
       <p>La nostra casa. Il nostro dungeon.</p>
+
+      <input
+        id="loginEmail"
+        type="email"
+        placeholder="Email"
+        autocomplete="email"
+      >
+
+      <input
+        id="loginPassword"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+      >
+
+      <button id="loginButton">ENTRA NEL DUNGEON</button>
+
+      <div id="loginMessage"></div>
     </div>
   </div>
 
-  <div class="season">
-    STAGIONE<br>
-    <strong>01 · Settimana 1</strong>
-  </div>
-</header>
+  <!-- =========================
+       APP
+       ========================= -->
+  <div class="app" id="mainApp">
 
-
-<!-- PLAYERS -->
-
-<div class="players">
-
-  <div class="player">
-    <div class="player-top">
-      <div>
-        <div class="player-name">⚔️ Giulia</div>
-        <div class="level" id="giuliaLevel">Livello 1</div>
+    <header>
+      <div class="logo">
+        <div class="logo-icon">🏰</div>
+        <div>
+          <h1>CASA QUEST</h1>
+          <p>La nostra casa. Il nostro dungeon.</p>
+        </div>
       </div>
-      <div class="avatar">🧙‍♀️</div>
-    </div>
 
-    <div class="stat-row">
-      <span>XP</span>
-      <strong id="giuliaXP">0 / 100</strong>
-    </div>
-
-    <div class="xpbar">
-      <div class="xpfill" id="giuliaBar"></div>
-    </div>
-
-    <div class="stat-row">
-      <span>🪙 Monete</span>
-      <strong id="giuliaCoins">50</strong>
-    </div>
-  </div>
-
-
-  <div class="player">
-    <div class="player-top">
-      <div>
-        <div class="player-name">🛡️ Diego</div>
-        <div class="level" id="diegoLevel">Livello 1</div>
+      <div class="season">
+        STAGIONE<br>
+        <strong>01 · Settimana 1</strong>
       </div>
-      <div class="avatar">🧝‍♂️</div>
+    </header>
+
+    <div class="top-actions">
+      <button class="small-button" id="logoutButton">Esci</button>
     </div>
 
-    <div class="stat-row">
-      <span>XP</span>
-      <strong id="diegoXP">0 / 100</strong>
+    <!-- PLAYERS -->
+    <div class="players">
+
+      <div class="player">
+        <div class="player-top">
+          <div>
+            <div class="player-name">⚔️ <span id="giuliaName">Giulia</span></div>
+            <div class="level" id="giuliaLevel">Livello 1</div>
+          </div>
+          <div class="avatar">🧙‍♀️</div>
+        </div>
+
+        <div class="stat-row">
+          <span>XP</span>
+          <strong id="giuliaXP">0 / 100</strong>
+        </div>
+
+        <div class="xpbar">
+          <div class="xpfill" id="giuliaBar"></div>
+        </div>
+
+        <div class="stat-row">
+          <span>🪙 Monete</span>
+          <strong id="giuliaCoins">50</strong>
+        </div>
+      </div>
+
+      <div class="player">
+        <div class="player-top">
+          <div>
+            <div class="player-name">🛡️ <span id="diegoName">Diego</span></div>
+            <div class="level" id="diegoLevel">Livello 1</div>
+          </div>
+          <div class="avatar">🧝‍♂️</div>
+        </div>
+
+        <div class="stat-row">
+          <span>XP</span>
+          <strong id="diegoXP">0 / 100</strong>
+        </div>
+
+        <div class="xpbar">
+          <div class="xpfill" id="diegoBar"></div>
+        </div>
+
+        <div class="stat-row">
+          <span>🪙 Monete</span>
+          <strong id="diegoCoins">50</strong>
+        </div>
+      </div>
+
     </div>
 
-    <div class="xpbar">
-      <div class="xpfill" id="diegoBar"></div>
+    <!-- COUPLE STREAK -->
+    <div class="streak">
+      <div class="streak-title">🔥 Couple Streak</div>
+      <div class="streak-number" id="coupleStreak">0</div>
+      <div class="streak-sub">giorni consecutivi</div>
     </div>
 
-    <div class="stat-row">
-      <span>🪙 Monete</span>
-      <strong id="diegoCoins">50</strong>
-    </div>
+    <!-- NAV -->
+    <nav class="nav">
+      <button class="nav-button active" data-section="quests">⚔️ Quest</button>
+      <button class="nav-button" data-section="map">🗺️ Mappa</button>
+      <button class="nav-button" data-section="inventory">🎒 Inventario</button>
+      <button class="nav-button" data-section="achievements">🏆 Achievements</button>
+      <button class="nav-button" data-section="ranking">👑 Ranking</button>
+    </nav>
+
+    <!-- QUESTS -->
+    <section class="section active" id="quests">
+      <div class="section-title">⚔️ Quest del Dungeon</div>
+
+      <div class="section-grid">
+
+        <div>
+          <div class="quest urgent">
+            <div class="quest-top">
+              <div>
+                <div class="quest-name">🚨 Quest urgente</div>
+                <div class="quest-meta">Le quest reali verranno caricate dal database.</div>
+                <span class="tag urgent-tag">URGENTE</span>
+              </div>
+              <div class="quest-reward">+XP · +🪙</div>
+            </div>
+            <div class="quest-bottom">
+              <span class="quest-meta">12–24h di tempo</span>
+              <button onclick="demoQuest()">Prendi quest</button>
+            </div>
+          </div>
+
+          <div class="quest">
+            <div class="quest-top">
+              <div>
+                <div class="quest-name">🧹 Il Dungeon della Casa</div>
+                <div class="quest-meta">Completa una delle attività assegnate.</div>
+                <span class="tag">NORMALE</span>
+              </div>
+              <div class="quest-reward">XP variabile</div>
+            </div>
+            <div class="quest-bottom">
+              <span class="quest-meta">Reward calcolata dal gioco</span>
+              <button onclick="demoQuest()">Apri</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📜 Come funziona</h3>
+          <p class="muted">
+            Le quest vengono generate in base alle attività della casa.
+            La difficoltà, il tempo e gli altri parametri del gioco
+            determineranno XP, monete, streak, eventi e loot.
+          </p>
+          <div class="connection" id="connectionStatus">
+            Connessione al dungeon in corso...
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MAP -->
+    <section class="section" id="map">
+      <div class="section-title">🗺️ Mappa della Casa</div>
+
+      <div class="map">
+        <div class="zone">
+          <div class="zone-icon">🍳</div>
+          <div class="zone-name">Cucina</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-icon">🛋️</div>
+          <div class="zone-name">Zona giorno</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-icon">🛏️</div>
+          <div class="zone-name">Camere</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-icon">🚿</div>
+          <div class="zone-name">Bagno</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-icon">🌿</div>
+          <div class="zone-name">Esterno</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+
+        <div class="zone">
+          <div class="zone-icon">🐾</div>
+          <div class="zone-name">Territorio Polly</div>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="section" id="inventory">
+      <div class="section-title">🎒 Inventario</div>
+
+      <div class="inventory">
+        <div class="item">
+          <div class="item-icon">🛡️</div>
+          <div class="item-name">Protezione Streak</div>
+          <div class="item-count">x0</div>
+        </div>
+
+        <div class="item">
+          <div class="item-icon">⚡</div>
+          <div class="item-name">Boost XP</div>
+          <div class="item-count">x0</div>
+        </div>
+
+        <div class="item">
+          <div class="item-icon">🍀</div>
+          <div class="item-name">Fortuna</div>
+          <div class="item-count">x0</div>
+        </div>
+
+        <div class="item">
+          <div class="item-icon">🧪</div>
+          <div class="item-name">Pozione Misteriosa</div>
+          <div class="item-count">x0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACHIEVEMENTS -->
+    <section class="section" id="achievements">
+      <div class="section-title">🏆 Achievements</div>
+
+      <div class="achievement">
+        <div class="achievement-icon">🔒</div>
+        <div>
+          <div class="achievement-title">Le Cronache devono ancora iniziare</div>
+          <div class="achievement-desc">
+            Gli achievement verranno sbloccati durante il gioco.
+          </div>
+        </div>
+      </div>
+
+      <div class="achievement">
+        <div class="achievement-icon">❓</div>
+        <div>
+          <div class="achievement-title">Segreto</div>
+          <div class="achievement-desc">
+            Potrebbe esserci qualcosa che non avete ancora scoperto.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RANKING -->
+    <section class="section" id="ranking">
+      <div class="section-title">👑 Ranking settimanale</div>
+
+      <div class="rank">
+        <div class="rank-number">1</div>
+        <div class="rank-player">
+          <strong id="rankingGiulia">Giulia</strong>
+          <div class="muted">Performance Score</div>
+        </div>
+        <div class="rank-score" id="scoreGiulia">0</div>
+      </div>
+
+      <div class="rank">
+        <div class="rank-number">2</div>
+        <div class="rank-player">
+          <strong id="rankingDiego">Diego</strong>
+          <div class="muted">Performance Score</div>
+        </div>
+        <div class="rank-score" id="scoreDiego">0</div>
+      </div>
+    </section>
+
   </div>
 
-</div>
+  <!-- =========================
+       JAVASCRIPT
+       ========================= -->
+  <script>
+    const SUPABASE_URL = "https://reltnnnwbiyefflbekts.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY =
+      "sb_publishable_9SyUmLmAc0FweQoUZV_2eg_Cpdwlc7E";
 
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
-<!-- COUPLE STREAK -->
+    const loginScreen = document.getElementById("loginScreen");
+    const mainApp = document.getElementById("mainApp");
+    const loginButton = document.getElementById("loginButton");
+    const loginMessage = document.getElementById("loginMessage");
+    const logoutButton = document.getElementById("logoutButton");
+    const connectionStatus = document.getElementById("connectionStatus");
 
-<div class="streak">
-  <div class="streak-title">🔥 Couple Streak</div>
-  <div class="st
-    
+    function setConnectionStatus(message, type = "") {
+      connectionStatus.textContent = message;
+      connectionStatus.className = "connection" + (type ? " " + type : "");
+    }
+
+    function setPlayerUI(player) {
+      if (!player) return;
+
+      const level = Number(player.level ?? 1);
+      const xp = Number(player.xp ?? 0);
+      const coins = Number(player.coins ?? 0);
+      const xpInLevel = xp % 100;
+
+      if (player.name === "Giulia") {
+        document.getElementById("giuliaName").textContent = player.name;
+        document.getElementById("giuliaLevel").textContent = "Livello " + level;
+        document.getElementById("giuliaXP").textContent = xpInLevel + " / 100";
+        document.getElementById("giuliaCoins").textContent = coins;
+        document.getElementById("giuliaBar").style.width =
+          Math.min(xpInLevel, 100) + "%";
+        document.getElementById("scoreGiulia").textContent = xp;
+      }
+
+      if (player.name === "Diego") {
+        document.getElementById("diegoName").textContent = player.name;
+        document.getElementById("diegoLevel").textContent = "Livello " + level;
+        document.getElementById("diegoXP").textContent = xpInLevel + " / 100";
+        document.getElementById("diegoCoins").textContent = coins;
+        document.getElementById("diegoBar").style.width =
+          Math.min(xpInLevel, 100) + "%";
+        document.getElementById("scoreDiego").textContent = xp;
+      }
+    }
+
+    async function loadCasaQuest() {
+      const {
+        data: { session },
+        error: sessionError
+      } = await supabaseClient.auth.getSession();
+
+      if (sessionError) {
+        loginScreen.style.display = "flex";
+        mainApp.style.display = "none";
+        loginMessage.textContent = sessionError.message;
+        return;
+      }
+
+      if (!session) {
+        loginScreen.style.display = "flex";
+        mainApp.style.display = "none";
+        return;
+      }
+
+      loginScreen.style.display = "none";
+      mainApp.style.display = "block";
+      setConnectionStatus("Accesso effettuato. Caricamento personaggi...");
+
+      const { data: players, error: playersError } = await supabaseClient
+        .from("players")
+        .select("id,name,avatar,level,xp,coins,auth_user_id");
+
+      if (playersError) {
+        console.error(playersError);
+        setConnectionStatus(
+          "Accesso riuscito, ma il database non permette ancora la lettura dei personaggi. Dobbiamo configurare le policy RLS.",
+          "error"
+        );
+        return;
+      }
+
+      if (!players || players.length === 0) {
+        setConnectionStatus(
+          "Accesso riuscito, ma non ci sono ancora personaggi collegati.",
+          "error"
+        );
+        return;
+      }
+
+      players.forEach(setPlayerUI);
+
+      const { data: streak, error: streakError } = await supabaseClient
+        .from("streaks")
+        .select("couple_streak")
+        .limit(1)
+        .maybeSingle();
+
+      if (!streakError && streak) {
+        document.getElementById("coupleStreak").textContent =
+          Number(streak.couple_streak ?? 0);
+      }
+
+      setConnectionStatus(
+        "🏰 Casa Quest è collegato a Supabase.",
+        "ok"
+      );
+    }
+
+    loginButton.addEventListener("click", async () => {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      loginMessage.textContent = "";
+
+      if (!email || !password) {
+        loginMessage.textContent = "Inserisci email e password.";
+        return;
+      }
+
+      loginButton.disabled = true;
+      loginButton.textContent = "ACCESSO...";
+
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error(error);
+        loginMessage.textContent = error.message;
+        loginButton.disabled = false;
+        loginButton.textContent = "ENTRA NEL DUNGEON";
+        return;
+      }
+
+      await loadCasaQuest();
+
+      loginButton.disabled = false;
+      loginButton.textContent = "ENTRA NEL DUNGEON";
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      loginScreen.style.display = "flex";
+      mainApp.style.display = "none";
+      document.getElementById("loginPassword").value = "";
+      loginMessage.textContent = "";
+    });
+
+    supabaseClient.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        loginScreen.style.display = "flex";
+        mainApp.style.display = "none";
+      }
+    });
+
+    document.querySelectorAll(".nav-button").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".nav-button").forEach(btn =>
+          btn.classList.remove("active")
+        );
+
+        document.querySelectorAll(".section").forEach(section =>
+          section.classList.remove("active")
+        );
+
+        button.classList.add("active");
+        document.getElementById(button.dataset.section).classList.add("active");
+      });
+    });
+
+    function demoQuest() {
+      alert(
+        "Il sistema delle quest è collegato alla struttura di Casa Quest. " +
+        "Il prossimo passaggio sarà caricare le quest reali dal database."
+      );
+    }
+
+    loadCasaQuest();
+  </script>
+
+</body>
+</html>
