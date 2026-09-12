@@ -399,6 +399,29 @@
       background:var(--gold2);
     }
 
+    /* QUEST MANAGEMENT */
+    .form-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .form-field{display:flex;flex-direction:column;gap:6px}
+    .form-field.full{grid-column:1/-1}
+    .form-field label{font-size:13px;color:var(--muted)}
+    .form-field input,.form-field select,.form-field textarea{
+      width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+      background:#17131f;color:var(--text);outline:none;
+    }
+    .form-field textarea{min-height:80px;resize:vertical}
+    .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold)}
+    .check-row{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:4px}
+    .check-row label{color:var(--muted);font-size:13px}
+    .form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+    .primary-button{background:var(--gold);color:#241b12;border:0;border-radius:10px;padding:10px 15px;font-weight:bold}
+    .primary-button:disabled{opacity:.6;cursor:wait}
+    .management-list .quest{margin-bottom:10px}
+    @media(max-width:700px){.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:auto}}
+
     .tag{
       display:inline-block;
       padding:4px 8px;
@@ -719,6 +742,7 @@
       <button class="nav-button" data-section="inventory">🎒 Inventario</button>
       <button class="nav-button" data-section="achievements">🏆 Achievements</button>
       <button class="nav-button" data-section="ranking">👑 Ranking</button>
+      <button class="nav-button" data-section="manage">⚙️ Gestione Quest</button>
     </nav>
 
     <!-- QUESTS -->
@@ -752,6 +776,103 @@
         </div>
       </div>
     </section>
+    <!-- QUEST MANAGEMENT -->
+    <section class="section" id="manage">
+      <div class="section-title">⚙️ Gestione Quest</div>
+
+      <div class="section-grid">
+        <div class="card">
+          <h3>➕ Crea una nuova quest</h3>
+          <p class="muted">Da qui potrete aggiungere nuove faccende senza modificare il codice.</p>
+
+          <form id="questForm">
+            <div class="form-grid">
+              <div class="form-field full">
+                <label for="questTitle">Nome quest *</label>
+                <input id="questTitle" required placeholder="Es. Pulire filtro lavastoviglie">
+              </div>
+
+              <div class="form-field full">
+                <label for="questDescription">Descrizione</label>
+                <textarea id="questDescription" placeholder="Cosa bisogna fare?"></textarea>
+              </div>
+
+              <div class="form-field">
+                <label for="questZone">Zona</label>
+                <select id="questZone">
+                  <option>Casa</option><option>Cucina</option><option>Zona giorno</option>
+                  <option>Camere</option><option>Bagno</option><option>Esterno</option><option>Territorio Polly</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="questCategory">Categoria</label>
+                <input id="questCategory" value="Generale" placeholder="Pulizia, cucina, animali...">
+              </div>
+
+              <div class="form-field">
+                <label for="questOwner">Chi la fa?</label>
+                <select id="questOwner">
+                  <option value="">Contesa / condivisa</option>
+                  <option value="Giulia">Giulia</option>
+                  <option value="Diego">Diego</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="questFrequency">Frequenza</label>
+                <select id="questFrequency">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="recurring">Ricorrente</option>
+                  <option value="occasional" selected>Occasionale</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="questDifficulty">Difficoltà (1–5)</label>
+                <input id="questDifficulty" type="number" min="1" max="5" value="1" required>
+              </div>
+
+              <div class="form-field">
+                <label for="questMinutes">Tempo stimato (minuti)</label>
+                <input id="questMinutes" type="number" min="1" value="10" required>
+              </div>
+
+              <div class="form-field">
+                <label for="questXP">XP base</label>
+                <input id="questXP" type="number" min="0" value="10" required>
+              </div>
+
+              <div class="form-field">
+                <label for="questCoins">Monete base</label>
+                <input id="questCoins" type="number" min="0" value="2" required>
+              </div>
+
+              <div class="form-field full">
+                <div class="check-row">
+                  <label><input id="questStreak" type="checkbox" checked> Conta per Couple Streak</label>
+                  <label><input id="questTransferable" type="checkbox" checked> Trasferibile</label>
+                </div>
+              </div>
+            </div>
+
+            <div id="questFormMessage" class="connection" style="margin-top:15px;display:none;"></div>
+            <div class="form-actions">
+              <button type="button" class="small-button" id="resetQuestForm">Pulisci</button>
+              <button type="submit" class="primary-button" id="createQuestButton">Crea Quest</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>📚 Quest attualmente configurate</h3>
+          <p class="muted">Qui vedrete le quest già presenti nella vostra casa.</p>
+          <div id="managementQuestList" class="management-list"><div class="muted">Caricamento...</div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- MAP -->
     <section class="section" id="map">
       <div class="section-title">🗺️ Mappa della Casa</div>
@@ -967,6 +1088,7 @@
       const {data,error}=await supabaseClient.from("quests").select("*").eq("active",true).order("created_at",{ascending:false});
       if(error){ console.error(error); my.innerHTML='<div class="muted">Impossibile caricare le quest.</div>'; shared.innerHTML=''; return; }
       currentQuests=data||[];
+      renderManagementQuests();
       const me=currentPlayers.find(p=>p.id===currentUser.id);
       const mine=currentQuests.filter(q=>questCanBeDone(q) && String(q.ownership||'').toLowerCase() !== 'shared' && String(q.ownership||'').toLowerCase() !== 'contested');
       const sh=currentQuests.filter(q=>!mine.includes(q));
@@ -1028,6 +1150,67 @@
       return true;
     }
 
+    function showQuestFormMessage(message, type="ok") {
+      const box=$("questFormMessage");
+      box.style.display="block";
+      box.textContent=message;
+      box.className="connection" + (type ? " "+type : "");
+    }
+
+    function resetQuestForm(){
+      $("questForm").reset();
+      $("questCategory").value="Generale";
+      $("questDifficulty").value=1;
+      $("questMinutes").value=10;
+      $("questXP").value=10;
+      $("questCoins").value=2;
+      $("questStreak").checked=true;
+      $("questTransferable").checked=true;
+      $("questFormMessage").style.display="none";
+    }
+
+    function renderManagementQuests(){
+      const box=$("managementQuestList");
+      if(!currentQuests.length){box.innerHTML='<div class="muted">Nessuna quest ancora configurata.</div>';return;}
+      box.innerHTML=currentQuests.map(q=>`<div class="quest">
+        <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
+        <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
+        <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
+        <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5</div>
+      </div>`).join('');
+    }
+
+    async function createQuestFromForm(event){
+      event.preventDefault();
+      const title=$("questTitle").value.trim();
+      if(!title){showQuestFormMessage("Inserisci il nome della quest.","error");return;}
+      const ownerName=$("questOwner").value;
+      const ownerPlayer=ownerName ? currentPlayers.find(p=>p.name===ownerName) : null;
+      const btn=$("createQuestButton");
+      btn.disabled=true; btn.textContent="CREAZIONE...";
+      const {error}=await supabaseClient.rpc("create_quest",{
+        p_title:title,
+        p_description:$("questDescription").value.trim(),
+        p_zone:$("questZone").value,
+        p_category:$("questCategory").value.trim() || "Generale",
+        p_difficulty:Number($("questDifficulty").value),
+        p_base_xp:Number($("questXP").value),
+        p_base_coins:Number($("questCoins").value),
+        p_owner_id:ownerPlayer?.id || null,
+        p_frequency:$("questFrequency").value,
+        p_estimated_minutes:Number($("questMinutes").value),
+        p_counts_for_couple_streak:$("questStreak").checked,
+        p_transferable:$("questTransferable").checked,
+        p_quest_type:"normal"
+      });
+      btn.disabled=false; btn.textContent="Crea Quest";
+      if(error){console.error(error);showQuestFormMessage("Non sono riuscita a creare la quest: "+error.message,"error");return;}
+      showQuestFormMessage("✅ Quest creata! Ora è disponibile nel database della vostra casa.","ok");
+      resetQuestForm();
+      await loadQuests();
+      renderManagementQuests();
+    }
+
     async function loadCasaQuest(){
       if(!supabaseClient)return;
       const {data:{session},error}=await supabaseClient.auth.getSession();
@@ -1069,6 +1252,8 @@
       $("cancelCompletion").addEventListener("click",closeCompletion);
       $("completionMinutes").addEventListener("input",updatePreview);
       $("confirmCompletion").addEventListener("click",submitCompletion);
+      $("questForm").addEventListener("submit",createQuestFromForm);
+      $("resetQuestForm").addEventListener("click",resetQuestForm);
       initNavigation();
 
       try{
