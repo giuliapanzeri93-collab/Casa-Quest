@@ -349,133 +349,6 @@
       padding:16px;
       margin-bottom:12px;
     }
-    .quest.mine{border-left:4px solid var(--gold)}
-    .quest.shared{border-left:4px solid var(--blue)}
-    .quest.contested{border-left:4px solid #b58ee8}
-    .quest-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .secondary-button{
-      background:transparent;
-      color:var(--gold2);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:9px 13px;
-      font-weight:bold;
-    }
-    .secondary-button:hover{border-color:var(--gold)}
-    .empty-state{
-      padding:24px;
-      text-align:center;
-      color:var(--muted);
-      border:1px dashed var(--line);
-      border-radius:14px;
-    }
-    .quest-list-title{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin:8px 0 12px;
-    }
-    .quest-list-title h3{margin:0;color:var(--gold2)}
-    .request-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:22px;
-      height:22px;
-      padding:0 7px;
-      border-radius:99px;
-      background:#5a3f72;
-      color:#fff;
-      font-size:12px;
-      font-weight:bold;
-    }
-
-    /* MODAL */
-    .modal-backdrop{
-      position:fixed;
-      inset:0;
-      background:#000b;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:1000;
-    }
-    .modal-backdrop.open{display:flex}
-    .modal{
-      width:min(680px,100%);
-      max-height:90vh;
-      overflow:auto;
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:20px;
-      box-shadow:0 25px 80px #000b;
-    }
-    .modal-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-bottom:16px;
-    }
-    .modal-header h2{margin:0;color:var(--gold2);font-size:22px}
-    .close-button{
-      background:transparent;
-      border:1px solid var(--line);
-      color:var(--muted);
-      border-radius:9px;
-      padding:7px 10px;
-    }
-    .form-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-    .form-field{display:flex;flex-direction:column;gap:6px}
-    .form-field.full{grid-column:1/-1}
-    .form-field label{font-size:12px;color:var(--muted)}
-    .form-field input,.form-field select,.form-field textarea{
-      width:100%;
-      background:#19151f;
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:10px;
-      outline:none;
-    }
-    .form-field textarea{min-height:80px;resize:vertical}
-    .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold)}
-    .modal-actions{
-      display:flex;
-      justify-content:flex-end;
-      gap:8px;
-      margin-top:18px;
-      flex-wrap:wrap;
-    }
-    .notice{
-      margin:12px 0;
-      padding:10px 12px;
-      border-radius:10px;
-      background:#1d1924;
-      border:1px solid var(--line);
-      color:var(--muted);
-      font-size:13px;
-    }
-    .request-card{
-      background:#1d1825;
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:12px;
-      margin-bottom:10px;
-    }
-    .request-card strong{color:var(--gold2)}
-    .request-diff{font-size:12px;color:var(--muted);margin-top:6px}
-    @media(max-width:700px){
-      .form-grid{grid-template-columns:1fr}
-      .form-field.full{grid-column:auto}
-    }
 
     .quest.urgent{
       border-color:var(--red);
@@ -721,6 +594,51 @@
         text-align:left;
       }
     }
+
+    /* QUEST MODAL */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:#000b;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:1000;
+    }
+    .modal-backdrop.open{display:flex}
+    .modal{
+      width:100%;
+      max-width:460px;
+      background:var(--panel);
+      border:1px solid var(--gold);
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 20px 70px #000c;
+    }
+    .modal h2{margin:0 0 8px;color:var(--gold2)}
+    .modal label{display:block;margin-top:14px;color:var(--muted);font-size:13px}
+    .modal input,.modal textarea{
+      width:100%;
+      margin-top:6px;
+      padding:11px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#17131f;
+      color:var(--text);
+    }
+    .modal textarea{min-height:80px;resize:vertical}
+    .modal-actions{display:flex;gap:8px;margin-top:18px}
+    .modal-actions button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line)}
+    .modal-primary{background:var(--gold);color:#241b12;font-weight:bold;border:0!important}
+    .modal-secondary{background:var(--panel2);color:var(--text)}
+    .quest-info{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.5}
+    .quest-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .quest-actions button{font-size:13px}
+    .approval-actions{display:flex;gap:8px;margin-top:12px}
+    .approval-actions button{padding:8px 11px;border-radius:9px;border:1px solid var(--line)}
+    .approve-btn{background:var(--green);color:#102016;border:0!important;font-weight:bold}
+    .reject-btn{background:#522b32;color:#ffadb0}
   </style>
 </head>
 
@@ -852,41 +770,44 @@
     <section class="section active" id="quests">
       <div class="section-title">⚔️ Quest del Dungeon</div>
 
+      <div id="questLoading" class="card">Caricamento delle quest...</div>
+
       <div class="section-grid">
         <div>
-          <div class="quest-list-title">
-            <h3>Le tue quest</h3>
-            <span class="request-badge" id="myQuestCount">0</span>
+          <div class="card">
+            <h3>🧙‍♀️ Le tue quest</h3>
+            <div id="myQuests"></div>
           </div>
-          <div id="myQuestList"></div>
 
-          <div class="quest-list-title" style="margin-top:22px">
-            <h3>Quest condivise / contese</h3>
-            <span class="request-badge" id="sharedQuestCount">0</span>
+          <div class="card">
+            <h3>⚔️ Quest condivise / contese</h3>
+            <div id="sharedQuests"></div>
           </div>
-          <div id="sharedQuestList"></div>
 
-          <div class="quest-list-title" style="margin-top:22px">
-            <h3>Richieste di modifica</h3>
-            <span class="request-badge" id="requestCount">0</span>
+          <div class="card">
+            <h3>🔔 Completamenti da approvare</h3>
+            <div id="pendingApprovals"></div>
           </div>
-          <div id="requestList"></div>
         </div>
 
         <div>
           <div class="card">
             <h3>📜 Come funziona</h3>
             <p class="muted">
-              Queste sono le quest reali salvate nel database di Casa Quest.
-              Ogni quest ha difficoltà, tempo stimato, XP, monete e frequenza.
-            </p>
-            <p class="muted">
-              Le modifiche alle quest vengono proposte all'altro giocatore:
-              non cambiano immediatamente il valore della quest.
+              Completa una quest, inserisci il tempo effettivo e invia il completamento.
+              L'altro giocatore deve approvarlo prima che XP e monete vengano accreditati.
             </p>
             <div class="connection" id="connectionStatus">
               Connessione al dungeon in corso...
             </div>
+          </div>
+
+          <div class="card">
+            <h3>📊 Regola XP</h3>
+            <p class="muted">
+              Il tempo pesa sul valore della quest: il gioco confronta il tempo effettivo
+              con quello stimato. Il calcolo definitivo viene eseguito dal database.
+            </p>
           </div>
         </div>
       </div>
@@ -1022,95 +943,12 @@
 
   </div>
 
-  <!-- MODAL: MODIFICA QUEST -->
-  <div class="modal-backdrop" id="editQuestModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>✏️ Proponi modifica</h2>
-        <button class="close-button" onclick="closeEditModal()">Chiudi</button>
-      </div>
-
-      <div class="notice">
-        La modifica verrà inviata all'altro giocatore per l'approvazione.
-        La quest attuale non cambia finché non viene approvata.
-      </div>
-
-      <input type="hidden" id="editQuestId">
-
-      <div class="form-grid">
-        <div class="form-field full">
-          <label>Nome quest</label>
-          <input id="editTitle">
-        </div>
-
-        <div class="form-field full">
-          <label>Descrizione</label>
-          <textarea id="editDescription"></textarea>
-        </div>
-
-        <div class="form-field">
-          <label>Zona</label>
-          <input id="editZone">
-        </div>
-
-        <div class="form-field">
-          <label>Categoria</label>
-          <input id="editCategory">
-        </div>
-
-        <div class="form-field">
-          <label>Difficoltà (1–5)</label>
-          <input id="editDifficulty" type="number" min="1" max="5">
-        </div>
-
-        <div class="form-field">
-          <label>Tempo stimato (minuti)</label>
-          <input id="editMinutes" type="number" min="1">
-        </div>
-
-        <div class="form-field">
-          <label>Frequenza</label>
-          <select id="editFrequency">
-            <option value="daily">Ogni giorno</option>
-            <option value="weekly">Settimanale</option>
-            <option value="recurring">Ricorrente</option>
-            <option value="occasional">Occasionale</option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label>Proprietario</label>
-          <select id="editOwner">
-            <option value="">Contesa / nessun proprietario</option>
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label>XP base</label>
-          <input id="editXP" type="number" min="0">
-        </div>
-
-        <div class="form-field">
-          <label>Monete base</label>
-          <input id="editCoins" type="number" min="0">
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="secondary-button" onclick="closeEditModal()">Annulla</button>
-        <button class="quest" style="margin:0;background:var(--gold);color:#241b12" onclick="submitQuestChange()">Invia richiesta</button>
-      </div>
-      <div class="connection" id="editMessage"></div>
-    </div>
-  </div>
-
   <!-- =========================
        JAVASCRIPT
        ========================= -->
   <script>
     const SUPABASE_URL = "https://reltnnnwbiyefflbekts.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY =
-      "sb_publishable_9SyUmLmAc0FweQoUZV_2eg_Cpdwlc7E";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9SyUmLmAc0FweQoUZV_2eg_Cpdwlc7E";
 
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
@@ -1124,13 +962,11 @@
     const logoutButton = document.getElementById("logoutButton");
     const connectionStatus = document.getElementById("connectionStatus");
 
-    const HOUSEHOLD_ID = "3f4e99ca-ef35-4359-8782-b5e13b6f12e2";
-
     let currentUser = null;
     let currentPlayer = null;
-    let players = [];
-    let quests = [];
-    let changeRequests = [];
+    let allPlayers = [];
+    let allQuests = [];
+    let pendingCompletionToReview = null;
 
     function setConnectionStatus(message, type = "") {
       connectionStatus.textContent = message;
@@ -1139,7 +975,6 @@
 
     function setPlayerUI(player) {
       if (!player) return;
-
       const level = Number(player.level ?? 1);
       const xp = Number(player.xp ?? 0);
       const coins = Number(player.coins ?? 0);
@@ -1176,216 +1011,128 @@
     function ownerLabel(quest) {
       if (quest.ownership === "contested") return "⚔️ Contesa";
       if (quest.ownership === "shared") return "🤝 Condivisa";
-      const owner = players.find(p => p.id === quest.owner_id);
-      return owner ? "👤 " + owner.name : "👤 Non assegnata";
+      const owner = allPlayers.find(p => p.id === quest.owner_id);
+      return owner ? "👤 " + owner.name : "👤 Assegnazione";
     }
 
-    function frequencyLabel(value) {
-      return {
-        daily: "Ogni giorno",
-        weekly: "Settimanale",
-        recurring: "Ricorrente",
-        occasional: "Occasionale"
-      }[value] || value || "Occasionale";
-    }
-
-    function questCard(quest) {
-      const owner = players.find(p => p.id === quest.owner_id);
-      const isMine = quest.owner_id === currentPlayer?.id;
-      const kind = quest.ownership === "contested"
-        ? "contested"
-        : quest.ownership === "shared"
-          ? "shared"
-          : isMine ? "mine" : "";
-
-      const stars = "★".repeat(Number(quest.difficulty || 1)) +
-        "☆".repeat(5 - Number(quest.difficulty || 1));
+    function questCard(quest, canComplete) {
+      const stars = "★".repeat(Number(quest.difficulty || 1)) + "☆".repeat(5 - Number(quest.difficulty || 1));
+      const urgent = quest.urgent ? " urgent" : "";
+      const typeTag = quest.boss ? "👹 BOSS" : (quest.urgent ? "🚨 URGENTE" : "NORMALE");
+      const button = canComplete
+        ? `<button onclick="openCompletionModal('${quest.id}')">⚔️ Completa</button>`
+        : "";
 
       return `
-        <div class="quest ${kind}">
+        <div class="quest${urgent}">
           <div class="quest-top">
             <div>
               <div class="quest-name">${escapeHtml(quest.title)}</div>
-              <div class="quest-meta">${escapeHtml(quest.description || "Nessuna descrizione.")}</div>
-              <span class="tag">${escapeHtml(ownerLabel(quest))}</span>
-              <span class="tag">${escapeHtml(frequencyLabel(quest.frequency))}</span>
+              <div class="quest-meta">${escapeHtml(quest.description || "Nessuna descrizione")}</div>
+              <span class="tag">${escapeHtml(typeTag)}</span>
             </div>
-            <div class="quest-reward">
-              +${Number(quest.base_xp || 0)} XP<br>
-              +${Number(quest.base_coins || 0)} 🪙
-            </div>
+            <div class="quest-reward">+${Number(quest.base_xp)} XP<br>+${Number(quest.base_coins)} 🪙</div>
           </div>
-
-          <div class="quest-meta" style="margin-top:12px">
-            ${escapeHtml(quest.zone || "Zona non definita")} ·
-            ${escapeHtml(quest.category || "Generale")} ·
-            Difficoltà ${stars} ·
-            ⏱️ ${Number(quest.estimated_minutes || 0)} min
+          <div class="quest-info">
+            ${escapeHtml(ownerLabel(quest))} · ${escapeHtml(quest.category || "Generale")} · ${stars}<br>
+            ⏱️ ${Number(quest.estimated_minutes)} min · 🔁 ${escapeHtml(quest.frequency || "occasional")}
           </div>
-
           <div class="quest-bottom">
-            <span class="quest-meta">
-              ${quest.active ? "🟢 Attiva" : "⚫ Disattivata"}
-            </span>
-            <div class="quest-actions">
-              <button class="secondary-button" onclick="openEditModal('${quest.id}')">✏️ Modifica</button>
-              <button onclick="comingSoon('${quest.title.replaceAll("'", "\\'")}')">⚔️ Completa</button>
-            </div>
+            <span class="quest-meta">${quest.transferable ? "Trasferibile" : "Non trasferibile"}</span>
+            <div class="quest-actions">${button}</div>
           </div>
-        </div>
-      `;
+        </div>`;
     }
 
-    function renderQuestLists() {
-      const my = quests.filter(q =>
-        q.active &&
-        q.owner_id === currentPlayer?.id &&
-        q.ownership !== "contested" &&
-        q.ownership !== "shared"
-      );
+    function renderQuests() {
+      const my = document.getElementById("myQuests");
+      const shared = document.getElementById("sharedQuests");
+      const loading = document.getElementById("questLoading");
 
-      const shared = quests.filter(q =>
-        q.active &&
-        (
-          q.ownership === "contested" ||
-          q.ownership === "shared" ||
-          (q.owner_id && q.owner_id !== currentPlayer?.id)
-        )
-      );
+      const myQuests = allQuests.filter(q => q.ownership === "owned" && q.owner_id === currentPlayer?.id);
+      const sharedQuests = allQuests.filter(q => q.ownership === "contested" || q.ownership === "shared");
 
-      document.getElementById("myQuestCount").textContent = my.length;
-      document.getElementById("sharedQuestCount").textContent = shared.length;
+      my.innerHTML = myQuests.length
+        ? myQuests.map(q => questCard(q, true)).join("")
+        : '<div class="muted">Nessuna quest assegnata.</div>';
 
-      document.getElementById("myQuestList").innerHTML =
-        my.length ? my.map(questCard).join("") :
-        `<div class="empty-state">Nessuna quest assegnata a te.</div>`;
+      shared.innerHTML = sharedQuests.length
+        ? sharedQuests.map(q => questCard(q, true)).join("")
+        : '<div class="muted">Nessuna quest condivisa o contesa.</div>';
 
-      document.getElementById("sharedQuestList").innerHTML =
-        shared.length ? shared.map(questCard).join("") :
-        `<div class="empty-state">Nessuna quest condivisa o contesa.</div>`;
+      loading.style.display = "none";
     }
 
-    function renderRequests() {
-      const visible = changeRequests.filter(r => r.status === "pending");
-      document.getElementById("requestCount").textContent = visible.length;
+    function calculatePreviewXP(quest, minutes) {
+      const ratio = Math.min(Math.max(minutes / Math.max(Number(quest.estimated_minutes), 1), 0.5), 2);
+      let xp = Math.round(Number(quest.base_xp) * (0.5 + 0.5 * ratio));
+      if (quest.timing_bonus_enabled && quest.timing_bonus_before) {
+        const now = new Date();
+        const hhmm = now.toTimeString().slice(0,5);
+        if (hhmm <= quest.timing_bonus_before) {
+          xp = Math.round(xp * Number(quest.timing_bonus_multiplier || 1));
+        }
+      }
+      return xp;
+    }
 
-      if (!visible.length) {
-        document.getElementById("requestList").innerHTML =
-          `<div class="empty-state">Nessuna richiesta di modifica in attesa.</div>`;
+    async function loadQuestData() {
+      const { data: quests, error: questsError } = await supabaseClient
+        .from("quests")
+        .select("id,household_id,title,description,zone,category,difficulty,base_xp,base_coins,ownership,owner_id,frequency,estimated_minutes,counts_for_couple_streak,timing_bonus_enabled,timing_bonus_before,timing_bonus_multiplier,transferable,deadline_hours,quest_type,urgent,boss,active,created_at")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+
+      if (questsError) {
+        console.error(questsError);
+        setConnectionStatus("Personaggi caricati, ma non riesco a leggere le quest.", "error");
         return;
       }
 
-      document.getElementById("requestList").innerHTML = visible.map(r => {
-        const requester = players.find(p => p.id === r.requested_by);
-        const quest = quests.find(q => q.id === r.quest_id);
+      allQuests = quests || [];
+      renderQuests();
+      await loadPendingApprovals();
+    }
+
+    async function loadPendingApprovals() {
+      const box = document.getElementById("pendingApprovals");
+      const { data, error } = await supabaseClient
+        .from("quest_completions")
+        .select("id,quest_id,player_id,time_minutes,xp_awarded,coins_awarded,status,submitted_at")
+        .eq("status", "pending")
+        .order("submitted_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        box.innerHTML = '<div class="muted">Impossibile leggere i completamenti in attesa.</div>';
+        return;
+      }
+
+      const mine = (data || []).filter(c => c.player_id !== currentPlayer?.id);
+
+      if (!mine.length) {
+        box.innerHTML = '<div class="muted">Nessun completamento da approvare. ✨</div>';
+        return;
+      }
+
+      box.innerHTML = mine.map(c => {
+        const quest = allQuests.find(q => q.id === c.quest_id);
+        const player = allPlayers.find(p => p.id === c.player_id);
         return `
-          <div class="request-card">
-            <strong>✏️ ${escapeHtml(requester?.name || "Giocatore")}</strong>
-            propone una modifica a
-            <strong>${escapeHtml(quest?.title || "Quest")}</strong>.
-            <div class="request-diff">
-              La richiesta verrà gestita nel prossimo passaggio di approvazione.
+          <div class="quest">
+            <div class="quest-name">${escapeHtml(quest?.title || "Quest")}</div>
+            <div class="quest-meta">${escapeHtml(player?.name || "Giocatore")} · ⏱️ ${Number(c.time_minutes || 0)} min</div>
+            <div class="quest-info">Ricompensa calcolata: <strong>${Number(c.xp_awarded)} XP</strong> · <strong>${Number(c.coins_awarded)} 🪙</strong></div>
+            <div class="approval-actions">
+              <button class="approve-btn" onclick="reviewCompletion('${c.id}', true)">✅ Approva</button>
+              <button class="reject-btn" onclick="reviewCompletion('${c.id}', false)">❌ Rifiuta</button>
             </div>
-          </div>
-        `;
+          </div>`;
       }).join("");
     }
 
-    async function loadPlayers() {
-      const { data, error } = await supabaseClient
-        .from("players")
-        .select("id,name,avatar,level,xp,coins,auth_user_id")
-        .eq("household_id", HOUSEHOLD_ID)
-        .order("name");
-
-      if (error) throw error;
-
-      players = data || [];
-      players.forEach(setPlayerUI);
-
-      currentPlayer = players.find(p => p.id === currentUser.id);
-
-      if (!currentPlayer) {
-        throw new Error("Il tuo account è autenticato, ma non è collegato a un personaggio.");
-      }
-
-      const ownerSelect = document.getElementById("editOwner");
-      ownerSelect.innerHTML =
-        `<option value="">Contesa / nessun proprietario</option>` +
-        players.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
-    }
-
-    async function loadQuests() {
-      const { data, error } = await supabaseClient
-        .from("quests")
-        .select(`
-          id,
-          household_id,
-          title,
-          description,
-          zone,
-          category,
-          difficulty,
-          base_xp,
-          base_coins,
-          ownership,
-          owner_id,
-          frequency,
-          estimated_minutes,
-          counts_for_couple_streak,
-          transferable,
-          quest_type,
-          urgent,
-          boss,
-          active,
-          created_at
-        `)
-        .eq("household_id", HOUSEHOLD_ID)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
-      quests = data || [];
-      renderQuestLists();
-    }
-
-    async function loadChangeRequests() {
-      const { data, error } = await supabaseClient
-        .from("quest_change_requests")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.warn("Richieste di modifica non leggibili:", error);
-        changeRequests = [];
-        renderRequests();
-        return;
-      }
-
-      changeRequests = data || [];
-      renderRequests();
-    }
-
-    async function loadStreak() {
-      const { data, error } = await supabaseClient
-        .from("streaks")
-        .select("couple_streak")
-        .eq("household_id", HOUSEHOLD_ID)
-        .limit(1)
-        .maybeSingle();
-
-      if (!error && data) {
-        document.getElementById("coupleStreak").textContent =
-          Number(data.couple_streak ?? 0);
-      }
-    }
-
     async function loadCasaQuest() {
-      const {
-        data: { session },
-        error: sessionError
-      } = await supabaseClient.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
       if (sessionError) {
         loginScreen.style.display = "flex";
@@ -1403,112 +1150,145 @@
       currentUser = session.user;
       loginScreen.style.display = "none";
       mainApp.style.display = "block";
-      setConnectionStatus("🏰 Collegamento al dungeon...", "");
+      setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
 
-      try {
-        await loadPlayers();
-        await loadQuests();
-        await loadChangeRequests();
-        await loadStreak();
+      const { data: players, error: playersError } = await supabaseClient
+        .from("players")
+        .select("id,name,avatar,level,xp,coins,auth_user_id")
+        .order("name");
 
-        setConnectionStatus(
-          `🏰 Casa Quest collegato · ${currentPlayer.name}`,
-          "ok"
-        );
-      } catch (error) {
-        console.error(error);
-        setConnectionStatus(
-          "Accesso riuscito, ma c'è un problema nel caricamento dei dati: " +
-          (error.message || error),
-          "error"
-        );
-      }
-    }
-
-    function openEditModal(questId) {
-      const quest = quests.find(q => q.id === questId);
-      if (!quest) return;
-
-      document.getElementById("editQuestId").value = quest.id;
-      document.getElementById("editTitle").value = quest.title || "";
-      document.getElementById("editDescription").value = quest.description || "";
-      document.getElementById("editZone").value = quest.zone || "";
-      document.getElementById("editCategory").value = quest.category || "";
-      document.getElementById("editDifficulty").value = quest.difficulty ?? 1;
-      document.getElementById("editMinutes").value = quest.estimated_minutes ?? 10;
-      document.getElementById("editFrequency").value = quest.frequency || "occasional";
-      document.getElementById("editOwner").value = quest.owner_id || "";
-      document.getElementById("editXP").value = quest.base_xp ?? 0;
-      document.getElementById("editCoins").value = quest.base_coins ?? 0;
-      document.getElementById("editMessage").textContent = "";
-
-      document.getElementById("editQuestModal").classList.add("open");
-    }
-
-    function closeEditModal() {
-      document.getElementById("editQuestModal").classList.remove("open");
-    }
-
-    async function submitQuestChange() {
-      const questId = document.getElementById("editQuestId").value;
-      const quest = quests.find(q => q.id === questId);
-
-      if (!quest || !currentPlayer) return;
-
-      const payload = {
-        quest_id: questId,
-        requested_by: currentPlayer.id,
-        new_title: document.getElementById("editTitle").value.trim(),
-        new_description: document.getElementById("editDescription").value.trim() || null,
-        new_zone: document.getElementById("editZone").value.trim() || null,
-        new_category: document.getElementById("editCategory").value.trim() || null,
-        new_difficulty: Number(document.getElementById("editDifficulty").value),
-        new_base_xp: Number(document.getElementById("editXP").value),
-        new_base_coins: Number(document.getElementById("editCoins").value),
-        new_owner_id: document.getElementById("editOwner").value || null,
-        new_frequency: document.getElementById("editFrequency").value,
-        new_estimated_minutes: Number(document.getElementById("editMinutes").value),
-        new_counts_for_couple_streak: quest.counts_for_couple_streak,
-        new_transferable: quest.transferable,
-        new_quest_type: quest.quest_type
-      };
-
-      const msg = document.getElementById("editMessage");
-      msg.textContent = "Invio richiesta...";
-
-      const { error } = await supabaseClient
-        .from("quest_change_requests")
-        .insert(payload);
-
-      if (error) {
-        console.error(error);
-        msg.textContent =
-          "Non posso ancora inviare la richiesta: " + error.message;
-        msg.className = "connection error";
+      if (playersError) {
+        console.error(playersError);
+        setConnectionStatus("Accesso riuscito, ma c'è un problema nel caricamento dei dati: " + playersError.message, "error");
         return;
       }
 
-      msg.textContent = "✅ Richiesta inviata all'altro giocatore.";
-      msg.className = "connection ok";
+      allPlayers = players || [];
+      currentPlayer = allPlayers.find(p => p.id === currentUser.id) || null;
 
-      await loadChangeRequests();
+      if (!currentPlayer) {
+        setConnectionStatus("Account autenticato ma personaggio non trovato.", "error");
+        return;
+      }
 
-      setTimeout(closeEditModal, 900);
+      allPlayers.forEach(setPlayerUI);
+
+      const { data: streak, error: streakError } = await supabaseClient
+        .from("streaks")
+        .select("couple_streak")
+        .limit(1)
+        .maybeSingle();
+
+      if (!streakError && streak) {
+        document.getElementById("coupleStreak").textContent = Number(streak.couple_streak ?? 0);
+      }
+
+      await loadQuestData();
+      setConnectionStatus("🏰 Casa Quest è collegato a Supabase.", "ok");
     }
 
-    function comingSoon(title) {
-      alert(
-        "⚔️ " + title +
-        "\\n\\nIl pulsante Completa è pronto nell'interfaccia. " +
-        "Nel prossimo passaggio colleghiamo il completamento reale, " +
-        "il tempo impiegato, l'approvazione e le ricompense."
-      );
+    window.openCompletionModal = function(questId) {
+      const quest = allQuests.find(q => q.id === questId);
+      if (!quest) return;
+      window.currentCompletionQuest = quest;
+      document.getElementById("modalQuestTitle").textContent = "⚔️ " + quest.title;
+      document.getElementById("modalQuestInfo").innerHTML = `Tempo stimato: <strong>${Number(quest.estimated_minutes)} min</strong> · Ricompensa base: <strong>${Number(quest.base_xp)} XP</strong> + <strong>${Number(quest.base_coins)} 🪙</strong>`;
+      document.getElementById("completionMinutes").value = "";
+      document.getElementById("xpPreview").textContent = "Inserisci il tempo per vedere una stima XP.";
+      document.getElementById("completionModal").classList.add("open");
+      setTimeout(() => document.getElementById("completionMinutes").focus(), 50);
+    };
+
+    document.getElementById("completionMinutes").addEventListener("input", () => {
+      const minutes = Number(document.getElementById("completionMinutes").value);
+      const quest = window.currentCompletionQuest;
+      if (!quest || !minutes) {
+        document.getElementById("xpPreview").textContent = "Inserisci il tempo per vedere una stima XP.";
+        return;
+      }
+      const xp = calculatePreviewXP(quest, minutes);
+      document.getElementById("xpPreview").textContent = `Stima: ${xp} XP + ${Number(quest.base_coins)} 🪙. Il valore definitivo viene calcolato dal database.`;
+    });
+
+    document.getElementById("cancelCompletion").addEventListener("click", () => {
+      document.getElementById("completionModal").classList.remove("open");
+    });
+
+    document.getElementById("submitCompletion").addEventListener("click", async () => {
+      const quest = window.currentCompletionQuest;
+      const minutes = Number(document.getElementById("completionMinutes").value);
+      if (!quest || !Number.isInteger(minutes) || minutes < 1 || minutes > 480) {
+        alert("Inserisci un numero intero di minuti tra 1 e 480.");
+        return;
+      }
+
+      const button = document.getElementById("submitCompletion");
+      button.disabled = true;
+      button.textContent = "INVIO...";
+
+      const { error } = await supabaseClient.rpc("submit_quest_completion", {
+        p_quest_id: quest.id,
+        p_time_minutes: minutes
+      });
+
+      button.disabled = false;
+      button.textContent = "⚔️ Invia completamento";
+
+      if (error) {
+        console.error(error);
+        alert("Non sono riuscita a inviare il completamento: " + error.message);
+        return;
+      }
+
+      document.getElementById("completionModal").classList.remove("open");
+      alert("⚔️ Completamento inviato! Ora deve essere approvato dall'altro giocatore.");
+      await loadQuestData();
+    });
+
+    window.reviewCompletion = function(completionId, approve) {
+      if (approve) {
+        performReview(completionId, true, null);
+        return;
+      }
+      pendingCompletionToReview = completionId;
+      document.getElementById("rejectionReason").value = "";
+      document.getElementById("rejectionModal").classList.add("open");
+    };
+
+    async function performReview(completionId, approve, reason) {
+      const { error } = await supabaseClient.rpc("review_quest_completion", {
+        p_completion_id: completionId,
+        p_approve: approve,
+        p_rejection_reason: reason
+      });
+
+      if (error) {
+        console.error(error);
+        alert("Operazione non riuscita: " + error.message);
+        return;
+      }
+
+      alert(approve ? "✅ Completamento approvato! XP e monete accreditati." : "❌ Completamento rifiutato.");
+      await loadCasaQuest();
     }
+
+    document.getElementById("cancelRejection").addEventListener("click", () => {
+      document.getElementById("rejectionModal").classList.remove("open");
+      pendingCompletionToReview = null;
+    });
+
+    document.getElementById("confirmRejection").addEventListener("click", async () => {
+      if (!pendingCompletionToReview) return;
+      const reason = document.getElementById("rejectionReason").value.trim();
+      const id = pendingCompletionToReview;
+      pendingCompletionToReview = null;
+      document.getElementById("rejectionModal").classList.remove("open");
+      await performReview(id, false, reason || null);
+    });
 
     loginButton.addEventListener("click", async () => {
       const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
-
       loginMessage.textContent = "";
 
       if (!email || !password) {
@@ -1519,10 +1299,7 @@
       loginButton.disabled = true;
       loginButton.textContent = "ACCESSO...";
 
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
       if (error) {
         console.error(error);
@@ -1532,9 +1309,7 @@
         return;
       }
 
-      currentUser = data.user;
       await loadCasaQuest();
-
       loginButton.disabled = false;
       loginButton.textContent = "ENTRA NEL DUNGEON";
     });
@@ -1543,16 +1318,16 @@
       await supabaseClient.auth.signOut();
       currentUser = null;
       currentPlayer = null;
+      allPlayers = [];
+      allQuests = [];
       loginScreen.style.display = "flex";
       mainApp.style.display = "none";
       document.getElementById("loginPassword").value = "";
       loginMessage.textContent = "";
     });
 
-    supabaseClient.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        currentUser = null;
-        currentPlayer = null;
         loginScreen.style.display = "flex";
         mainApp.style.display = "none";
       }
@@ -1560,14 +1335,8 @@
 
     document.querySelectorAll(".nav-button").forEach(button => {
       button.addEventListener("click", () => {
-        document.querySelectorAll(".nav-button").forEach(btn =>
-          btn.classList.remove("active")
-        );
-
-        document.querySelectorAll(".section").forEach(section =>
-          section.classList.remove("active")
-        );
-
+        document.querySelectorAll(".nav-button").forEach(btn => btn.classList.remove("active"));
+        document.querySelectorAll(".section").forEach(section => section.classList.remove("active"));
         button.classList.add("active");
         document.getElementById(button.dataset.section).classList.add("active");
       });
