@@ -1259,7 +1259,7 @@
       if(error){console.error(error);alert('Non sono riuscita a inviare la modifica: '+error.message);return;}
       closeEditQuest();
       await loadPendingQuestChanges();
-      setConnectionStatus('📨 Modifica inviata: ora deve essere approvata dall'altro giocatore.','ok');
+      setConnectionStatus("📨 Modifica inviata: ora deve essere approvata dall'altro giocatore.","ok");
     }
 
     async function loadPendingQuestChanges(){
