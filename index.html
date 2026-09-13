@@ -427,6 +427,16 @@
     .primary-button{background:var(--gold);color:#241b12;border:0;border-radius:10px;padding:10px 15px;font-weight:bold}
     .primary-button:disabled{opacity:.6;cursor:wait}
     .management-list .quest{margin-bottom:10px}
+    .completion-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .completion-field{display:flex;flex-direction:column;gap:6px}
+    .completion-field.full{grid-column:1/-1}
+    .completion-field label{font-size:13px;color:var(--muted)}
+    .completion-field input,.completion-field select,.completion-field textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#17131f;color:var(--text);outline:none}
+    .completion-field textarea{min-height:90px;resize:vertical}
+    .assist-box{background:#1d1825;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:4px}
+    .assist-row{display:grid;grid-template-columns:1fr 110px;gap:10px}
+    .approval-details{margin-top:8px;padding:10px;border-radius:10px;background:#1d1825;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+    @media(max-width:700px){.completion-grid{grid-template-columns:1fr}.completion-field.full{grid-column:auto}.assist-row{grid-template-columns:1fr}}
     @media(max-width:700px){.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:auto}}
 
     .tag{
@@ -1127,16 +1137,51 @@
     </div>
   </div>
 
-  <div id="completionModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1000;align-items:center;justify-content:center;padding:20px;">
-    <div class="card" style="width:100%;max-width:430px;margin:0;box-shadow:0 20px 70px #000;">
+  <div id="completionModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1000;align-items:center;justify-content:center;padding:20px;overflow:auto;">
+    <div class="card" style="width:100%;max-width:560px;margin:20px 0;box-shadow:0 20px 70px #000;">
       <h3 id="completionTitle">Completa quest</h3>
       <p id="completionDescription" class="muted"></p>
-      <label for="completionMinutes">Minuti impiegati</label>
-      <input id="completionMinutes" type="number" min="1" max="480" value="10" style="width:100%;padding:12px;margin:8px 0 14px;border-radius:10px;border:1px solid var(--line);background:#17131f;color:white;">
-      <div id="xpPreview" class="muted" style="margin-bottom:14px;"></div>
+
+      <div class="completion-grid">
+        <div class="completion-field">
+          <label for="completionPercent">📊 Percentuale completamento</label>
+          <input id="completionPercent" type="number" min="1" max="100" value="100">
+        </div>
+        <div class="completion-field">
+          <label for="completionMinutes">⏱️ Minuti impiegati</label>
+          <input id="completionMinutes" type="number" min="1" max="480" value="10">
+        </div>
+        <div class="completion-field">
+          <label for="completionDate">📅 Data del completamento</label>
+          <select id="completionDate">
+            <option value="today">Oggi</option>
+            <option value="yesterday">Ieri</option>
+          </select>
+        </div>
+        <div class="completion-field">
+          <label for="completionAssistEnabled">🤝 Aiuto ricevuto</label>
+          <select id="completionAssistEnabled">
+            <option value="no">No</option>
+            <option value="yes">Sì</option>
+          </select>
+        </div>
+        <div id="assistFields" class="completion-field full assist-box" style="display:none;">
+          <label>Chi ti ha aiutato e quanto?</label>
+          <div class="assist-row">
+            <select id="completionAssistPlayer"></select>
+            <input id="completionAssistPercent" type="number" min="1" max="100" value="20" placeholder="% aiuto">
+          </div>
+        </div>
+        <div class="completion-field full">
+          <label for="completionComments">📝 Micro-obiettivi / cosa hai svolto</label>
+          <textarea id="completionComments" placeholder="Es. caricato lavastoviglie; lavato pentole; pulito piano cottura..."></textarea>
+        </div>
+      </div>
+
+      <div id="xpPreview" class="muted" style="margin:14px 0;"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button id="cancelCompletion" class="small-button">Annulla</button>
-        <button id="confirmCompletion" class="quest button">Invia completamento</button>
+        <button id="confirmCompletion" class="primary-button">Invia completamento</button>
       </div>
     </div>
   </div>
@@ -1169,17 +1214,23 @@
     }
     function setLoginMessage(message){ $("loginMessage").textContent = message || ""; }
 
+    function levelRequired(level){ return 50*Number(level)+50; }
+    function progressiveLevel(totalXp){
+      let xp=Math.max(0,Number(totalXp)||0), level=1;
+      while(xp>=levelRequired(level)){ xp-=levelRequired(level); level++; }
+      return {level,xpInLevel:Math.floor(xp),required:levelRequired(level)};
+    }
     function setPlayerUI(player){
       if(!player) return;
-      const level=Number(player.level ?? 1), xp=Number(player.xp ?? 0), coins=Number(player.coins ?? 0);
-      const xpInLevel=((xp % 100)+100)%100;
+      const xp=Math.max(0,Number(player.xp ?? 0)), coins=Number(player.coins ?? 0);
+      const prog=progressiveLevel(xp);
       if(player.name === "Giulia"){
-        $("giuliaName").textContent=player.name; $("giuliaLevel").textContent="Livello "+level;
-        $("giuliaXP").textContent=xpInLevel+" / 100"; $("giuliaCoins").textContent=coins; $("giuliaBar").style.width=Math.min(xpInLevel,100)+"%"; $("scoreGiulia").textContent=xp;
+        $("giuliaName").textContent=player.name; $("giuliaLevel").textContent="Livello "+prog.level;
+        $("giuliaXP").textContent=prog.xpInLevel+" / "+prog.required; $("giuliaCoins").textContent=coins; $("giuliaBar").style.width=Math.min(100,(prog.xpInLevel/prog.required)*100)+"%"; $("scoreGiulia").textContent=xp;
       }
       if(player.name === "Diego"){
-        $("diegoName").textContent=player.name; $("diegoLevel").textContent="Livello "+level;
-        $("diegoXP").textContent=xpInLevel+" / 100"; $("diegoCoins").textContent=coins; $("diegoBar").style.width=Math.min(xpInLevel,100)+"%"; $("scoreDiego").textContent=xp;
+        $("diegoName").textContent=player.name; $("diegoLevel").textContent="Livello "+prog.level;
+        $("diegoXP").textContent=prog.xpInLevel+" / "+prog.required; $("diegoCoins").textContent=coins; $("diegoBar").style.width=Math.min(100,(prog.xpInLevel/prog.required)*100)+"%"; $("scoreDiego").textContent=xp;
       }
     }
 
@@ -1225,12 +1276,13 @@
       return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
     }
 
+    function completionDateValue(c){ return c.completion_for_date || dateKey(c.completed_at||c.submitted_at); }
     function completionBlocksQuest(q, completionRows){
       const rows=(completionRows||[]).filter(c=>c.quest_id===q.id && ['pending','approved','auto_approved'].includes(c.status));
       if(!rows.length) return false;
       if(q.frequency==='occasional') return true;
-      if(q.frequency==='daily' || q.frequency==='recurring') return rows.some(c=>dateKey(c.completed_at||c.submitted_at)===dateKey(new Date()));
-      if(q.frequency==='weekly') return rows.some(c=>isoWeekKey(c.completed_at||c.submitted_at)===isoWeekKey(new Date()));
+      if(q.frequency==='daily' || q.frequency==='recurring') return rows.some(c=>completionDateValue(c)===dateKey(new Date()));
+      if(q.frequency==='weekly') return rows.some(c=>isoWeekKey(completionDateValue(c))===isoWeekKey(new Date()));
       return false;
     }
 
@@ -1246,7 +1298,10 @@
         ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
         <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
-        <button data-complete="${q.id}">Completa</button></div></div>`;
+        <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          ${canTransferQuest(q) ? `<button class="small-button" data-transfer="${q.id}" type="button">↔️ Trasferisci</button>` : ''}
+          <button data-complete="${q.id}">Completa</button>
+        </span></div></div>`;
     }
 
     function checkAlreadyDoneToday(q, completionRows){
@@ -1352,6 +1407,7 @@
         : `0 quest · ${budget} min disponibili`;
 
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
+      document.querySelectorAll('[data-transfer]').forEach(btn=>btn.addEventListener('click',()=>transferQuest(btn.dataset.transfer)));
       return chosenIds;
     }
 
@@ -1365,7 +1421,7 @@
         return;
       }
 
-      const {data:completions,error:completionError}=await supabaseClient.from('quest_completions').select('id,quest_id,player_id,completed_at,submitted_at,status');
+      const {data:completions,error:completionError}=await supabaseClient.from('quest_completions').select('id,quest_id,player_id,completed_at,submitted_at,status,check_action_taken,check_checked_at,completion_for_date,completion_percent,completion_comments,assist_player_id,assist_percent,helper_xp_awarded');
       if(completionError) console.error(completionError);
 
       currentQuests=data||[];
@@ -1392,6 +1448,7 @@
       boss.innerHTML=bosses.length?bosses.map(questCard).join(''):'<div class="muted">Nessun Boss disponibile.</div>';
 
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
+      document.querySelectorAll('[data-transfer]').forEach(btn=>btn.addEventListener('click',()=>transferQuest(btn.dataset.transfer)));
     }
 
     async function loadApprovals(){
@@ -1399,43 +1456,36 @@
       const ids=currentPlayers.filter(p=>p.id!==currentUser.id).map(p=>p.id);
       if(!ids.length){box.innerHTML='<div class="muted">Nessun altro giocatore.</div>';return;}
       const {data,error}=await supabaseClient.from("quest_completions").select("*, quests(title,base_xp,base_coins)").eq("status","pending").in("player_id",ids).order("submitted_at",{ascending:false});
-      if(error){console.error(error);box.innerHTML='<div class="muted">Impossibile leggere le approvazioni.</div>';return;}
-      box.innerHTML=(data&&data.length)?data.map(c=>`<div class="quest"><div class="quest-name">${esc(c.quests?.title||'Quest')}</div><div class="quest-meta">${Number(c.time_minutes||0)} minuti · proposta da un altro giocatore</div><div class="quest-bottom"><span class="quest-reward">+${Number(c.xp_awarded||0)} XP · +${Number(c.coins_awarded||0)} 🪙</span><span><button data-approve="${c.id}" data-value="yes">Approva</button> <button class="small-button" data-approve="${c.id}" data-value="no">Rifiuta</button></span></div></div>`).join(''):'<div class="muted">Nessuna quest in attesa.</div>';
+      if(error){
+        console.error(error);
+        // Fallback nel caso PostgREST non abbia ancora aggiornato la relazione nominata.
+        const fallback=await supabaseClient.from("quest_completions").select("*, quests(title,base_xp,base_coins)").eq("status","pending").in("player_id",ids).order("submitted_at",{ascending:false});
+        if(fallback.error){box.innerHTML='<div class="muted">Impossibile leggere le approvazioni.</div>';return;}
+        return renderApprovals(fallback.data||[]);
+      }
+      renderApprovals(data||[]);
+    }
+    function renderApprovals(data){
+      const box=$("pendingApprovals");
+      if(!data.length){box.innerHTML='<div class="muted">Nessuna quest in attesa.</div>';return;}
+      box.innerHTML=data.map(c=>{
+        const helperName=c.assist?.name || currentPlayers.find(p=>p.id===c.assist_player_id)?.name || '';
+        const details=`<div class="approval-details"><div>📊 Completamento: <strong>${Number(c.completion_percent||100)}%</strong></div><div>📅 Data: <strong>${esc(c.completion_for_date||dateKey(c.completed_at||c.submitted_at))}</strong></div>${c.assist_player_id?`<div>🤝 Aiuto: <strong>${esc(helperName)}</strong> · ${Number(c.assist_percent||0)}% · ${Number(c.helper_xp_awarded||0)} XP</div>`:''}${c.completion_comments?`<div style="margin-top:6px;white-space:pre-wrap;">📝 ${esc(c.completion_comments)}</div>`:''}</div>`;
+        return `<div class="quest"><div class="quest-name">${esc(c.quests?.title||'Quest')}</div><div class="quest-meta">${Number(c.time_minutes||0)} minuti · proposta da un altro giocatore</div>${details}<div class="quest-bottom"><span class="quest-reward">+${Number(c.xp_awarded||0)} XP · +${Number(c.coins_awarded||0)} 🪙</span><span><button data-approve="${c.id}" data-value="yes">Approva</button> <button class="small-button" data-approve="${c.id}" data-value="no">Rifiuta</button></span></div></div>`;
+      }).join('');
       box.querySelectorAll('[data-approve]').forEach(btn=>btn.addEventListener('click',()=>reviewCompletion(btn.dataset.approve,btn.dataset.value==='yes')));
     }
 
-    function openCompletion(id){
-      selectedQuest=currentQuests.find(q=>q.id===id); if(!selectedQuest)return;
-      $("completionTitle").textContent="Completa: "+selectedQuest.title;
-      $("completionDescription").textContent=selectedQuest.description||"Inserisci il tempo effettivo impiegato.";
-      $("completionMinutes").value=Number(selectedQuest.estimated_minutes||10); updatePreview();
-      $("completionModal").style.display="flex";
-    }
-    function closeCompletion(){ selectedQuest=null; $("completionModal").style.display="none"; }
-    function updatePreview(){
-      if(!selectedQuest)return;
-      const t=Math.max(1,Number($("completionMinutes").value)||1), est=Math.max(1,Number(selectedQuest.estimated_minutes||10));
-      const ratio=Math.min(Math.max(t/est,.5),2); let xp=Math.round(Number(selectedQuest.base_xp||0)*(.5+.5*ratio));
-      $("xpPreview").textContent=`Anteprima: circa ${xp} XP + ${Number(selectedQuest.base_coins||0)} 🪙 (prima dell'approvazione).`;
-    }
-
-    async function submitCompletion(){
-      if(!selectedQuest)return;
-      const mins=Math.round(Number($("completionMinutes").value)||0);
-      if(mins<1||mins>480){alert("Inserisci un tempo tra 1 e 480 minuti.");return;}
-      const btn=$("confirmCompletion"); btn.disabled=true; btn.textContent="INVIO...";
-      const {data,error}=await supabaseClient.rpc("submit_quest_completion",{p_quest_id:selectedQuest.id,p_time_minutes:mins});
-      btn.disabled=false; btn.textContent="Invia completamento";
-      if(error){console.error(error);alert("Non sono riuscita a inviare la quest: "+error.message);return;}
-      closeCompletion(); await loadQuests(); await loadApprovals(); setConnectionStatus("✅ Completamento inviato: aspetta l'approvazione dell'altro giocatore.","ok");
-    }
-
-    async function reviewCompletion(id,approve){
-      let reason=null; if(!approve){reason=prompt("Motivo del rifiuto (facoltativo):")}
-      const {error}=await supabaseClient.rpc("review_quest_completion",{p_completion_id:id,p_approve:approve,p_rejection_reason:reason});
-      if(error){console.error(error);alert("Operazione non riuscita: "+error.message);return;}
-      await loadApprovals(); await loadPlayers(); await loadQuests();
-      setConnectionStatus(approve?"✅ Quest approvata e ricompensa assegnata.":"Quest rifiutata.",approve?"ok":"error");
+    async function transferQuest(id){
+      const q=currentQuests.find(x=>x.id===id); if(!q)return;
+      const me=currentPlayer();
+      const target=currentPlayers.find(p=>p.id!==me?.id);
+      if(!target){alert("Non trovo l'altro giocatore.");return;}
+      if(!confirm(`Trasferire “${q.title}” a ${target.name}?`))return;
+      const {error}=await supabaseClient.rpc('transfer_quest',{p_quest_id:id,p_new_owner_id:target.id});
+      if(error){console.error(error);alert('Non sono riuscita a trasferire la quest: '+error.message);return;}
+      await loadQuests();
+      setConnectionStatus(`↔️ Quest trasferita a ${target.name}.`, 'ok');
     }
 
     async function loadPlayers(){
@@ -1661,6 +1711,12 @@
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
+      $("completionMinutes").addEventListener("input",updatePreview);
+      $("completionPercent").addEventListener("input",updatePreview);
+      $("completionAssistPercent").addEventListener("input",updatePreview);
+      $("completionAssistEnabled").addEventListener("change",toggleAssistFields);
+      $("completionDate").addEventListener("change",updatePreview);
+
       $("questType").addEventListener("change",()=>{
         const isCheck=$("questType").value==='check';
         $("checkBonusFields").style.display=isCheck?'block':'none';
@@ -1671,6 +1727,12 @@
       $("checkFixed").addEventListener("click",()=>$("checkTimeField").style.display='block');
       $("confirmCheckFixed").addEventListener("click",()=>performCheck(true));
       $("resetQuestForm").addEventListener("click",resetQuestForm);
+      $("completionMinutes").addEventListener("input",updatePreview);
+      $("completionPercent").addEventListener("input",updatePreview);
+      $("completionAssistPercent").addEventListener("input",updatePreview);
+      $("completionAssistEnabled").addEventListener("change",toggleAssistFields);
+      $("completionDate").addEventListener("change",updatePreview);
+
       $("dailyBudgetMinutes").addEventListener("change",()=>{ saveDailyBudget(); loadQuests(); });
       $("regenerateDailyPlan").addEventListener("click",()=>{ saveDailyBudget(); loadQuests(); });
       initNavigation();
