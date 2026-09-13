@@ -937,7 +937,9 @@
                 <div class="check-row">
                   <label><input id="questStreak" type="checkbox" checked> Conta per Couple Streak</label>
                   <label><input id="questTransferable" type="checkbox" checked> Trasferibile</label>
+                  <label><input id="questMandatory" type="checkbox"> ⭐ Obbligatoria nella Daily</label>
                 </div>
+                <div class="muted" id="mandatoryHint" style="margin-top:8px">Una quest obbligatoria viene sempre inserita nel piano Daily, anche se supera il budget di tempo.</div>
               </div>
             </div>
 
@@ -961,9 +963,19 @@
           <div id="pendingQuestChanges"><div class="muted">Caricamento...</div></div>
         </div>
         <div class="card">
+          <h3>⏭️ Deroghe Daily obbligatorie</h3>
+          <p class="muted">Una deroga vale solo per oggi. Domani la quest torna automaticamente obbligatoria.</p>
+          <div id="pendingDailySkips"><div class="muted">Caricamento...</div></div>
+        </div>
+        <div class="card">
           <h3>🗑️ Eliminazioni da approvare</h3>
           <p class="muted">Una quest viene eliminata definitivamente solo dopo l'approvazione dell'altro giocatore.</p>
           <div id="pendingQuestDeletions"><div class="muted">Caricamento...</div></div>
+        </div>
+        <div class="card">
+          <h3>⭐ Rimozioni dall’obbligatorietà</h3>
+          <p class="muted">Una Daily obbligatoria resta nel feed finché l’altro giocatore non approva la rimozione dell’obbligatorietà.</p>
+          <div id="pendingMandatoryRemovals"><div class="muted">Caricamento...</div></div>
         </div>
       </div>
     </section>
@@ -1203,6 +1215,7 @@
     let currentPlayers = [];
     let currentQuests = [];
     let pendingDeletionRequests = [];
+    let pendingMandatoryRemovalRequests = [];
     let selectedQuest = null;
     let selectedCheckQuest = null;
 
@@ -1283,6 +1296,10 @@
     }
 
     function completionDateValue(c){ return c.completion_for_date || dateKey(c.completed_at||c.submitted_at); }
+    function skippedForToday(q){
+      return pendingDailySkips.some(r=>r.status==='approved' && r.quest_id===q.id && r.player_id===currentUser.id && r.skip_date===todayISO());
+    }
+
     function completionBlocksQuest(q, completionRows){
       const rows=(completionRows||[]).filter(c=>c.quest_id===q.id && ['pending','approved','auto_approved'].includes(c.status));
       if(!rows.length) return false;
@@ -1301,7 +1318,7 @@
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
         ${check}
         <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
-        ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
+        ${urgent}${boss}${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
         <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
         <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
@@ -1391,7 +1408,14 @@
         return Math.random()-.5;
       });
       const chosen=[]; let total=0;
-      for(const q of shuffled){
+      const mandatory=shuffled.filter(q=>q.frequency==='daily' && q.mandatory_daily);
+      const optional=shuffled.filter(q=>!mandatory.includes(q));
+      for(const q of mandatory){
+        const mins=Math.max(1,Number(q.estimated_minutes||10));
+        chosen.push(q);
+        total+=mins;
+      }
+      for(const q of optional){
         const mins=Math.max(1,Number(q.estimated_minutes||10));
         if(total+mins<=budget){chosen.push(q);total+=mins;}
       }
@@ -1623,6 +1647,7 @@
       $("questCoins").value=2;
       $("questStreak").checked=true;
       $("questTransferable").checked=true;
+      $("questMandatory").checked=false;
       $("questType").value="normal";
       $("questCheckXP").value=5;
       $("questCheckCoins").value=1;
@@ -1636,20 +1661,31 @@
       if(!currentQuests.length){box.innerHTML='<div class="muted">Nessuna quest ancora configurata.</div>';return;}
       box.innerHTML=currentQuests.map(q=>{
         const deletion=pendingDeletionRequests.find(r=>r.quest_id===q.id);
+        const mandatoryRemoval=pendingMandatoryRemovalRequests.find(r=>r.quest_id===q.id);
         const deletionUi=deletion
           ? `<span class="tag">🗑️ ELIMINAZIONE IN ATTESA</span>`
           : `<button class="small-button" data-delete-quest="${q.id}" type="button">🗑️ Elimina</button>`;
+        const mandatory = q.quest_type==='normal' && String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true;
+        const skipUi = mandatory ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : '';
+        const mandatoryUi=q.mandatory_daily
+          ? (mandatoryRemoval
+            ? `<span class="tag">⭐ RIMOZIONE IN ATTESA</span>`
+            : `<button class="small-button" data-remove-mandatory="${q.id}" type="button">⭐ Rimuovi obbligatorietà</button>`)
+          : '';
         return `<div class="quest">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
         ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
+        ${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}
         <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
         <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
-        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${deletionUi}</span></div>
+        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${skipUi}${deletionUi}${mandatoryUi}</span></div>
       </div>`;
       }).join('');
       box.querySelectorAll('[data-edit-quest]').forEach(btn=>btn.addEventListener('click',()=>openEditQuest(btn.dataset.editQuest)));
       box.querySelectorAll('[data-delete-quest]').forEach(btn=>btn.addEventListener('click',()=>requestQuestDeletion(btn.dataset.deleteQuest)));
+      box.querySelectorAll('[data-skip-quest]').forEach(btn=>btn.addEventListener('click',()=>requestDailySkip(btn.dataset.skipQuest)));
+      box.querySelectorAll('[data-remove-mandatory]').forEach(btn=>btn.addEventListener('click',()=>requestMandatoryRemoval(btn.dataset.removeMandatory)));
     }
 
     function openEditQuest(id){
@@ -1750,6 +1786,47 @@
       setConnectionStatus(approve?'✅ Modifica approvata e applicata.':'❌ Modifica rifiutata.',approve?'ok':'error');
     }
 
+    async function requestDailySkip(id){
+      const quest=currentQuests.find(q=>q.id===id);
+      if(!quest)return;
+      const reason=prompt(`Salta “${quest.title}” per oggi. Motivo (facoltativo):`);
+      if(reason===null)return;
+      if(!confirm(`Inviare la richiesta a ${otherPlayerName()}?\n\nLa quest scomparirà dal Daily solo se approvata. Domani tornerà automaticamente obbligatoria.`))return;
+      const {error}=await supabaseClient.rpc('request_daily_skip',{
+        p_quest_id:id,p_skip_date:todayISO(),p_reason:reason
+      });
+      if(error){alert('Non sono riuscita a inviare la richiesta: '+error.message);return;}
+      await loadPendingDailySkips(); setConnectionStatus('⏭️ Richiesta inviata: serve l’approvazione dell’altro.','ok');
+    }
+
+    function otherPlayerName(){
+      const other=currentPlayers.find(p=>p.id!==currentUser.id);
+      return other?.name || 'l’altro giocatore';
+    }
+
+    async function loadPendingDailySkips(){
+      const box=$('pendingDailySkips'); if(!box)return;
+      const {data,error}=await supabaseClient.from('quest_daily_skips')
+        .select('id,quest_id,player_id,skip_date,reason,status,created_at,quests(title)')
+        .in('status',['pending','approved']).order('created_at',{ascending:false});
+      if(error){console.error(error);pendingDailySkips=[];box.innerHTML='<div class="muted">Impossibile leggere le richieste.</div>';return;}
+      pendingDailySkips=data||[];
+      const others=pendingDailySkips.filter(r=>r.player_id!==currentUser.id);
+      const mine=pendingDailySkips.filter(r=>r.player_id===currentUser.id);
+      const a=others.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">${esc(r.reason||'Nessun motivo')} · ${esc(r.skip_date)}</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-skip-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-skip-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('');
+      const b=mine.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Richiesta per ${esc(r.skip_date)}. In attesa dell’altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('');
+      box.innerHTML=(a+b)||'<div class="muted">Nessuna deroga in attesa.</div>';
+      box.querySelectorAll('[data-skip-review]').forEach(btn=>btn.addEventListener('click',()=>reviewDailySkip(btn.dataset.skipReview,btn.dataset.value==='yes')));
+    }
+
+    async function reviewDailySkip(id,approve){
+      const reason=approve?null:prompt('Motivo del rifiuto (facoltativo):');
+      const {error}=await supabaseClient.rpc('review_daily_skip',{p_request_id:id,p_approve:approve,p_rejection_reason:reason});
+      if(error){alert('Operazione non riuscita: '+error.message);return;}
+      await loadPendingDailySkips(); await loadQuests();
+      setConnectionStatus(approve?'⏭️ Deroga approvata: vale solo per oggi.':'❌ Deroga rifiutata: la quest resta obbligatoria.',approve?'ok':'error');
+    }
+
     async function requestQuestDeletion(id){
       const quest=currentQuests.find(q=>q.id===id);
       if(!quest)return;
@@ -1760,6 +1837,49 @@
       await loadPendingQuestDeletions();
       renderManagementQuests();
       setConnectionStatus("🗑️ Richiesta di eliminazione inviata: ora deve essere approvata dall'altro giocatore.","ok");
+    }
+
+    async function requestMandatoryRemoval(id){
+      const quest=currentQuests.find(q=>q.id===id);
+      if(!quest || !quest.mandatory_daily)return;
+      const ok=confirm(`Vuoi chiedere di togliere “${quest.title}” dal feed Daily obbligatorio?\n\nLa quest resterà una Daily normale. La modifica avverrà solo dopo l'approvazione dell'altro giocatore.`);
+      if(!ok)return;
+      const {error}=await supabaseClient.rpc('request_mandatory_removal',{p_quest_id:id});
+      if(error){console.error(error);alert('Non sono riuscita a inviare la richiesta: '+error.message);return;}
+      await loadPendingMandatoryRemovals();
+      renderManagementQuests();
+      setConnectionStatus('⭐ Richiesta di rimozione dell’obbligatorietà inviata: ora deve essere approvata dall’altro giocatore.','ok');
+    }
+
+    async function loadPendingMandatoryRemovals(){
+      const box=$('pendingMandatoryRemovals');
+      const {data,error}=await supabaseClient.from('quest_mandatory_removal_requests')
+        .select('id,quest_id,requested_by,status,created_at,quests(title,ownership)')
+        .eq('status','pending').order('created_at',{ascending:false});
+      if(error){
+        console.error(error);
+        pendingMandatoryRemovalRequests=[];
+        box.innerHTML='<div class="muted">Impossibile leggere le richieste di rimozione dell’obbligatorietà.</div>';
+        return;
+      }
+      pendingMandatoryRemovalRequests=data||[];
+      const mine=pendingMandatoryRemovalRequests.filter(r=>r.requested_by===currentUser.id);
+      const others=pendingMandatoryRemovalRequests.filter(r=>r.requested_by!==currentUser.id);
+      const ownHtml=mine.length ? mine.map(r=>`<div class="quest"><div class="quest-name">⭐ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Hai chiesto di togliere l’obbligatorietà. La Daily resta obbligatoria finché l’altro giocatore non approva.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('') : '';
+      const otherHtml=others.length ? others.map(r=>`<div class="quest"><div class="quest-name">⭐ Rimuovi obbligatorietà: ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">L’altro giocatore ha chiesto di togliere questa quest dal feed Daily obbligatorio.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-mandatory-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-mandatory-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('') : '';
+      box.innerHTML=(ownHtml+otherHtml)||'<div class="muted">Nessuna richiesta di rimozione in attesa.</div>';
+      box.querySelectorAll('[data-mandatory-review]').forEach(btn=>btn.addEventListener('click',()=>reviewMandatoryRemoval(btn.dataset.mandatoryReview,btn.dataset.value==='yes')));
+    }
+
+    async function reviewMandatoryRemoval(id,approve){
+      let reason=null;
+      if(!approve)reason=prompt('Motivo del rifiuto (facoltativo):');
+      const {error}=await supabaseClient.rpc('review_mandatory_removal',{p_request_id:id,p_approve:approve,p_rejection_reason:reason});
+      if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
+      await loadQuests();
+      await loadPendingMandatoryRemovals();
+      renderManagementQuests();
+      setConnectionStatus(approve?'⭐ Obbligatorietà rimossa dopo approvazione.':'❌ Rimozione dell’obbligatorietà rifiutata.',approve?'ok':'error');
     }
 
     async function loadPendingQuestDeletions(){
@@ -1803,6 +1923,29 @@
       setConnectionStatus(approve?'🗑️ Quest eliminata dopo approvazione.':'❌ Eliminazione rifiutata.',approve?'ok':'error');
     }
 
+    function syncMandatoryQuestOption(){
+      const isDaily=$("questFrequency").value==='daily';
+      $("questMandatory").disabled=!isDaily;
+      $("mandatoryHint").textContent=isDaily
+        ? 'Compare ogni giorno nel Daily del giocatore preposto e non può essere tolta dall’obbligatorietà senza approvazione dell’altro giocatore.'
+        : "L'obbligatorietà vale solo per le quest Daily.";
+      if(!isDaily) $("questMandatory").checked=false;
+    }
+
+    async function setCreatedQuestMandatory(createdData, title){
+      const requested=Boolean($("questMandatory").checked) && $("questFrequency").value==='daily';
+      if(!requested)return;
+      if(!$("questOwner").value) throw new Error('Una Daily obbligatoria deve avere un giocatore preposto (Giulia o Diego).');
+      let questId=createdData?.id || createdData?.[0]?.id || null;
+      if(!questId){
+        const {data}=await supabaseClient.from('quests').select('id,title,created_at').eq('active',true).eq('title',title).order('created_at',{ascending:false}).limit(1).maybeSingle();
+        questId=data?.id||null;
+      }
+      if(!questId)throw new Error('Quest creata, ma non riesco a individuare la quest da rendere obbligatoria.');
+      const {error}=await supabaseClient.rpc('set_quest_mandatory',{p_quest_id:questId,p_mandatory:true});
+      if(error)throw error;
+    }
+
     async function createQuestFromForm(event){
       event.preventDefault();
       const title=$("questTitle").value.trim();
@@ -1811,7 +1954,7 @@
       const ownerPlayer=ownerName ? currentPlayers.find(p=>p.name===ownerName) : null;
       const btn=$("createQuestButton");
       btn.disabled=true; btn.textContent="CREAZIONE...";
-      const {error}=await supabaseClient.rpc("create_quest",{
+      const {data:createdQuest,error}=await supabaseClient.rpc("create_quest",{
         p_title:title,
         p_description:$("questDescription").value.trim(),
         p_zone:$("questZone").value,
@@ -1830,6 +1973,15 @@
       });
       btn.disabled=false; btn.textContent="Crea Quest";
       if(error){console.error(error);showQuestFormMessage("Non sono riuscita a creare la quest: "+error.message,"error");return;}
+      try{
+        await setCreatedQuestMandatory(createdQuest,title);
+      }catch(e){
+        console.error(e);
+        showQuestFormMessage("⚠️ Quest creata, ma non sono riuscita ad applicare l'obbligatorietà: "+e.message,"error");
+        await loadQuests();
+        renderManagementQuests();
+        return;
+      }
       showQuestFormMessage("✅ Quest creata! Ora è disponibile nel database della vostra casa.","ok");
       resetQuestForm();
       await loadQuests();
@@ -1843,7 +1995,7 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
     }
 
     async function login(){
@@ -1877,6 +2029,8 @@
       $("cancelCompletion").addEventListener("click",closeCompletion);
       $("completionMinutes").addEventListener("input",updatePreview);
       $("confirmCompletion").addEventListener("click",submitCompletion);
+      $("questFrequency").addEventListener("change",syncMandatoryQuestOption);
+      syncMandatoryQuestOption();
       $("questForm").addEventListener("submit",createQuestFromForm);
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
