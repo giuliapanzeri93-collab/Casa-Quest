@@ -1894,7 +1894,7 @@
     async function loadPendingQuestDeletions(){
       const box=$("pendingQuestDeletions");
       const {data,error}=await supabaseClient.from('quest_deletion_requests')
-        .select('id,quest_id,requested_by,status,created_at,quests(title,ownership)')
+        .select('id,quest_id,requested_by,status,created_at')
         .eq('status','pending')
         .order('created_at',{ascending:false});
       if(error){
