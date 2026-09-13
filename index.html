@@ -416,6 +416,13 @@
     .form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--gold)}
     .check-row{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:4px}
     .check-row label{color:var(--muted);font-size:13px}
+
+    .check-card{border:1px solid var(--gold);background:linear-gradient(135deg,#2b2337,#241d30);}
+    .check-badge{display:inline-block;border:1px solid var(--gold);color:var(--gold2);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:7px}
+    .check-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .check-actions button{flex:1;min-width:120px}
+    .check-result{margin-top:10px}
+    .check-bonus-fields{display:none}
     .form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
     .primary-button{background:var(--gold);color:#241b12;border:0;border-radius:10px;padding:10px 15px;font-weight:bold}
     .primary-button:disabled{opacity:.6;cursor:wait}
@@ -778,6 +785,11 @@
         <div id="dailyQuests" style="margin-top:15px"><div class="muted">Calcolo del piano...</div></div>
       </div>
 
+      <div class="card check-card" id="todayChecksCard">
+        <div class="frequency-title"><h3>🔎 Check di oggi</h3><small>Controlli rapidi: se trovi qualcosa da sistemare, guadagni il bonus.</small></div>
+        <div id="todayChecks"><div class="muted">Caricamento check...</div></div>
+      </div>
+
       <div class="section-grid">
         <div>
           <div class="card">
@@ -891,6 +903,24 @@
               <div class="form-field">
                 <label for="questCoins">Monete base</label>
                 <input id="questCoins" type="number" min="0" value="2" required>
+              </div>
+
+              <div class="form-field">
+                <label for="questType">Tipo quest</label>
+                <select id="questType">
+                  <option value="normal" selected>⚔️ Normale</option>
+                  <option value="check">🔎 Check Quest</option>
+                </select>
+              </div>
+
+              <div class="form-field check-bonus-fields" id="checkBonusFields">
+                <label for="questCheckXP">Bonus Check XP</label>
+                <input id="questCheckXP" type="number" min="0" value="5">
+              </div>
+
+              <div class="form-field check-bonus-fields" id="checkBonusCoinsField">
+                <label for="questCheckCoins">Bonus Check monete</label>
+                <input id="questCheckCoins" type="number" min="0" value="1">
               </div>
 
               <div class="form-field full">
@@ -1076,6 +1106,27 @@
     </div>
   </div>
 
+  <div id="checkModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1000;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="width:100%;max-width:430px;margin:0;box-shadow:0 20px 70px #000;">
+      <h3 id="checkTitle">🔎 Check Quest</h3>
+      <p id="checkDescription" class="muted"></p>
+      <p class="muted">Hai controllato la situazione e...</p>
+      <div class="check-actions">
+        <button id="checkAllOk" type="button">✅ Tutto OK</button>
+        <button id="checkFixed" type="button" class="primary-button">🛠️ Ho sistemato</button>
+      </div>
+      <div id="checkTimeField" style="display:none;margin-top:14px;">
+        <label for="checkMinutes">Minuti impiegati per sistemare</label>
+        <input id="checkMinutes" type="number" min="1" max="480" value="10" style="width:100%;padding:12px;margin:8px 0 14px;border-radius:10px;border:1px solid var(--line);background:#17131f;color:white;">
+        <button id="confirmCheckFixed" class="primary-button" type="button" style="width:100%;">Invia: ho sistemato</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <button id="cancelCheck" class="small-button" type="button">Annulla</button>
+      </div>
+      <div id="checkResult" class="check-result muted"></div>
+    </div>
+  </div>
+
   <div id="completionModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:1000;align-items:center;justify-content:center;padding:20px;">
     <div class="card" style="width:100%;max-width:430px;margin:0;box-shadow:0 20px 70px #000;">
       <h3 id="completionTitle">Completa quest</h3>
@@ -1102,6 +1153,7 @@
     let currentPlayers = [];
     let currentQuests = [];
     let selectedQuest = null;
+    let selectedCheckQuest = null;
 
     function $(id){ return document.getElementById(id); }
     function esc(value){
@@ -1184,15 +1236,77 @@
 
     function questCard(q){
       const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
+      const check=q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : '';
       const boss=q.boss ? '<span class="tag">BOSS</span>' : '';
       const owner=ownershipLabel(q.ownership);
       return `<div class="quest ${q.urgent?'urgent':''}">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
+        ${check}
         <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
         ${urgent}${boss}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
         <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
         <button data-complete="${q.id}">Completa</button></div></div>`;
+    }
+
+    function checkAlreadyDoneToday(q, completionRows){
+      return (completionRows||[]).some(c=>c.quest_id===q.id && c.check_checked_at && dateKey(c.check_checked_at)===dateKey(new Date()) && ['pending','approved','auto_approved'].includes(c.status));
+    }
+
+    function renderTodayChecks(checks){
+      const box=$("todayChecks");
+      if(!checks.length){
+        box.innerHTML='<div class="muted">✨ Nessun Check da fare oggi. Il dungeon è sotto controllo.</div>';
+        return;
+      }
+      box.innerHTML=checks.map(q=>`<div class="quest check-card">
+        <div class="quest-top"><div><div class="check-badge">🔎 CHECK QUEST</div><div class="quest-name">${esc(q.title)}</div>
+        <div class="quest-meta">${esc(q.description||'Controlla che sia tutto a posto.')} · ${esc(ownershipLabel(q.ownership))}</div></div>
+        <div class="quest-reward">+${Number(q.check_bonus_xp||0)} XP · +${Number(q.check_bonus_coins||0)} 🪙</div></div>
+        <div class="quest-bottom"><span class="quest-meta">Controllo di oggi</span><button data-check="${q.id}">🔎 Controlla</button></div>
+      </div>`).join('');
+      box.querySelectorAll('[data-check]').forEach(btn=>btn.addEventListener('click',()=>openCheck(btn.dataset.check)));
+    }
+
+    async function loadTodayChecks(completions){
+      const checks=currentQuests.filter(q=>q.quest_type==='check' && questCanBeDone(q) && !checkAlreadyDoneToday(q,completions));
+      renderTodayChecks(checks);
+    }
+
+    function openCheck(id){
+      selectedCheckQuest=currentQuests.find(q=>q.id===id);
+      if(!selectedCheckQuest)return;
+      $("checkTitle").textContent='🔎 '+selectedCheckQuest.title;
+      $("checkDescription").textContent=selectedCheckQuest.description||'Controlla che sia tutto a posto.';
+      $("checkTimeField").style.display='none';
+      $("checkResult").textContent='';
+      $("checkMinutes").value=Number(selectedCheckQuest.estimated_minutes||10);
+      $("checkModal").style.display='flex';
+    }
+
+    function closeCheck(){
+      selectedCheckQuest=null;
+      $("checkModal").style.display='none';
+      $("checkTimeField").style.display='none';
+      $("checkResult").textContent='';
+    }
+
+    async function performCheck(actionTaken){
+      if(!selectedCheckQuest)return;
+      let mins=null;
+      if(actionTaken){
+        mins=Math.round(Number($("checkMinutes").value)||0);
+        if(mins<1||mins>480){alert('Inserisci un tempo tra 1 e 480 minuti.');return;}
+      }
+      const btns=[$("checkAllOk"),$("checkFixed"),$("confirmCheckFixed")];
+      btns.forEach(b=>{if(b)b.disabled=true;});
+      const {error}=await supabaseClient.rpc('perform_check_quest',{p_quest_id:selectedCheckQuest.id,p_action_taken:actionTaken,p_time_minutes:mins});
+      btns.forEach(b=>{if(b)b.disabled=false;});
+      if(error){console.error(error);alert('Non sono riuscita a registrare il check: '+error.message);return;}
+      closeCheck();
+      await loadQuests();
+      await loadApprovals();
+      setConnectionStatus(actionTaken?'🛠️ Check registrato: intervento inviato per approvazione.':'✅ Check registrato: tutto OK, nessuna ricompensa.','ok');
     }
 
     function getDailyBudget(){
@@ -1258,7 +1372,9 @@
       renderManagementQuests();
 
       const visible=currentQuests.filter(q=>questCanBeDone(q) && !completionBlocksQuest(q,completions||[]));
-      const normal=visible.filter(q=>!q.boss);
+      const checks=currentQuests.filter(q=>q.quest_type==='check' && questCanBeDone(q) && !checkAlreadyDoneToday(q,completions||[]));
+      await loadTodayChecks(completions||[]);
+      const normal=visible.filter(q=>q.quest_type!=='check' && !q.boss);
       const daily=normal.filter(q=>q.frequency==='daily');
       const recurring=normal.filter(q=>q.frequency==='recurring');
       const weekly=normal.filter(q=>q.frequency==='weekly');
@@ -1347,6 +1463,11 @@
       $("questCoins").value=2;
       $("questStreak").checked=true;
       $("questTransferable").checked=true;
+      $("questType").value="normal";
+      $("questCheckXP").value=5;
+      $("questCheckCoins").value=1;
+      $("checkBonusFields").style.display="none";
+      $("checkBonusCoinsField").style.display="none";
       $("questFormMessage").style.display="none";
     }
 
@@ -1355,9 +1476,10 @@
       if(!currentQuests.length){box.innerHTML='<div class="muted">Nessuna quest ancora configurata.</div>';return;}
       box.innerHTML=currentQuests.map(q=>`<div class="quest">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
+        ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
         <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
         <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
-        <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5</div>
+        <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
         <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><button data-edit-quest="${q.id}">✏️ Modifica</button></div>
       </div>`).join('');
       box.querySelectorAll('[data-edit-quest]').forEach(btn=>btn.addEventListener('click',()=>openEditQuest(btn.dataset.editQuest)));
@@ -1482,7 +1604,9 @@
         p_estimated_minutes:Number($("questMinutes").value),
         p_counts_for_couple_streak:$("questStreak").checked,
         p_transferable:$("questTransferable").checked,
-        p_quest_type:"normal"
+        p_quest_type:$("questType").value,
+        p_check_bonus_xp:$("questType").value==='check' ? Number($("questCheckXP").value||0) : 0,
+        p_check_bonus_coins:$("questType").value==='check' ? Number($("questCheckCoins").value||0) : 0
       });
       btn.disabled=false; btn.textContent="Crea Quest";
       if(error){console.error(error);showQuestFormMessage("Non sono riuscita a creare la quest: "+error.message,"error");return;}
@@ -1536,6 +1660,16 @@
       $("questForm").addEventListener("submit",createQuestFromForm);
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
+      $("resetQuestForm").addEventListener("click",resetQuestForm);
+      $("questType").addEventListener("change",()=>{
+        const isCheck=$("questType").value==='check';
+        $("checkBonusFields").style.display=isCheck?'block':'none';
+        $("checkBonusCoinsField").style.display=isCheck?'block':'none';
+      });
+      $("cancelCheck").addEventListener("click",closeCheck);
+      $("checkAllOk").addEventListener("click",()=>performCheck(false));
+      $("checkFixed").addEventListener("click",()=>$("checkTimeField").style.display='block');
+      $("confirmCheckFixed").addEventListener("click",()=>performCheck(true));
       $("resetQuestForm").addEventListener("click",resetQuestForm);
       $("dailyBudgetMinutes").addEventListener("change",()=>{ saveDailyBudget(); loadQuests(); });
       $("regenerateDailyPlan").addEventListener("click",()=>{ saveDailyBudget(); loadQuests(); });
