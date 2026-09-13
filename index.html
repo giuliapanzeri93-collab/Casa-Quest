@@ -960,6 +960,11 @@
           <p class="muted">Le modifiche proposte dall'altro giocatore diventano effettive solo dopo l'approvazione.</p>
           <div id="pendingQuestChanges"><div class="muted">Caricamento...</div></div>
         </div>
+        <div class="card">
+          <h3>🗑️ Eliminazioni da approvare</h3>
+          <p class="muted">Una quest viene eliminata definitivamente solo dopo l'approvazione dell'altro giocatore.</p>
+          <div id="pendingQuestDeletions"><div class="muted">Caricamento...</div></div>
+        </div>
       </div>
     </section>
 
@@ -1628,15 +1633,22 @@
     function renderManagementQuests(){
       const box=$("managementQuestList");
       if(!currentQuests.length){box.innerHTML='<div class="muted">Nessuna quest ancora configurata.</div>';return;}
-      box.innerHTML=currentQuests.map(q=>`<div class="quest">
+      box.innerHTML=currentQuests.map(q=>{
+        const deletion=pendingDeletionRequests.find(r=>r.quest_id===q.id);
+        const deletionUi=deletion
+          ? `<span class="tag">🗑️ ELIMINAZIONE IN ATTESA</span>`
+          : `<button class="small-button" data-delete-quest="${q.id}" type="button">🗑️ Elimina</button>`;
+        return `<div class="quest">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
         ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
         <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
         <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
         <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
-        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><button data-edit-quest="${q.id}">✏️ Modifica</button></div>
-      </div>`).join('');
+        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${deletionUi}</span></div>
+      </div>`;
+      }).join('');
       box.querySelectorAll('[data-edit-quest]').forEach(btn=>btn.addEventListener('click',()=>openEditQuest(btn.dataset.editQuest)));
+      box.querySelectorAll('[data-delete-quest]').forEach(btn=>btn.addEventListener('click',()=>requestQuestDeletion(btn.dataset.deleteQuest)));
     }
 
     function openEditQuest(id){
@@ -1737,6 +1749,59 @@
       setConnectionStatus(approve?'✅ Modifica approvata e applicata.':'❌ Modifica rifiutata.',approve?'ok':'error');
     }
 
+    async function requestQuestDeletion(id){
+      const quest=currentQuests.find(q=>q.id===id);
+      if(!quest)return;
+      const ok=confirm(`Vuoi chiedere l'eliminazione di “${quest.title}”?\\n\\nLa quest NON verrà eliminata subito: l'altro giocatore dovrà approvare la richiesta.`);
+      if(!ok)return;
+      const {error}=await supabaseClient.rpc('request_quest_deletion',{p_quest_id:id});
+      if(error){console.error(error);alert('Non sono riuscita a inviare la richiesta: '+error.message);return;}
+      await loadPendingQuestDeletions();
+      renderManagementQuests();
+      setConnectionStatus("🗑️ Richiesta di eliminazione inviata: ora deve essere approvata dall'altro giocatore.","ok");
+    }
+
+    async function loadPendingQuestDeletions(){
+      const box=$("pendingQuestDeletions");
+      const {data,error}=await supabaseClient.from('quest_deletion_requests')
+        .select('id,quest_id,requested_by,status,created_at,quests(title,ownership)')
+        .eq('status','pending')
+        .order('created_at',{ascending:false});
+      if(error){
+        console.error(error);
+        box.innerHTML='<div class="muted">Impossibile leggere le richieste di eliminazione.</div>';
+        pendingDeletionRequests=[];
+        return;
+      }
+      pendingDeletionRequests=data||[];
+      const mine=pendingDeletionRequests.filter(r=>r.requested_by===currentUser.id);
+      const others=pendingDeletionRequests.filter(r=>r.requested_by!==currentUser.id);
+      const ownHtml=mine.length
+        ? mine.map(r=>`<div class="quest"><div class="quest-name">🗑️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Hai chiesto l'eliminazione. In attesa dell'approvazione dell'altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('')
+        : '';
+      const otherHtml=others.length
+        ? others.map(r=>`<div class="quest"><div class="quest-name">🗑️ Elimina: ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">L'altro giocatore ha chiesto di eliminare questa quest.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-delete-approve="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-delete-approve="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('')
+        : '';
+      box.innerHTML=(ownHtml+otherHtml)||'<div class="muted">Nessuna richiesta di eliminazione in attesa.</div>';
+      box.querySelectorAll('[data-delete-approve]').forEach(btn=>btn.addEventListener('click',()=>reviewQuestDeletion(btn.dataset.deleteApprove,btn.dataset.value==='yes')));
+    }
+
+    async function reviewQuestDeletion(id,approve){
+      let reason=null;
+      if(!approve)reason=prompt('Motivo del rifiuto (facoltativo):');
+      const {error}=await supabaseClient.rpc('review_quest_deletion',{
+        p_request_id:id,
+        p_approve:approve,
+        p_rejection_reason:reason
+      });
+      if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
+      await loadQuests();
+      await loadPendingQuestDeletions();
+      await loadPendingQuestChanges();
+      renderManagementQuests();
+      setConnectionStatus(approve?'🗑️ Quest eliminata dopo approvazione.':'❌ Eliminazione rifiutata.',approve?'ok':'error');
+    }
+
     async function createQuestFromForm(event){
       event.preventDefault();
       const title=$("questTitle").value.trim();
@@ -1777,7 +1842,7 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
     }
 
     async function login(){
