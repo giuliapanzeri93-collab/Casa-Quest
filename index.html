@@ -478,6 +478,11 @@
       margin-top:8px;
     }
 
+    .zone.quest-linked{cursor:pointer;transition:.15s;border-color:var(--line)}
+    .zone.quest-linked:hover{border-color:var(--gold);transform:translateY(-1px)}
+    .zone-quest-count{color:var(--gold2);font-size:13px;margin-top:7px}
+    .zone-quest-link{display:inline-block;margin-top:10px;color:var(--muted);font-size:12px}
+
     .chaos{
       margin-top:12px;
       font-size:12px;
@@ -996,48 +1001,8 @@
     <section class="section" id="map">
       <div class="section-title">🗺️ Mappa della Casa</div>
 
-      <div class="map">
-        <div class="zone">
-          <div class="zone-icon">🍳</div>
-          <div class="zone-name">Cucina</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
-
-        <div class="zone">
-          <div class="zone-icon">🛋️</div>
-          <div class="zone-name">Zona giorno</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
-
-        <div class="zone">
-          <div class="zone-icon">🛏️</div>
-          <div class="zone-name">Camere</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
-
-        <div class="zone">
-          <div class="zone-icon">🚿</div>
-          <div class="zone-name">Bagno</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
-
-        <div class="zone">
-          <div class="zone-icon">🌿</div>
-          <div class="zone-name">Esterno</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
-
-        <div class="zone">
-          <div class="zone-icon">🐾</div>
-          <div class="zone-name">Territorio Polly</div>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
-        </div>
+      <div class="map" id="houseMap">
+        <div class="muted">Caricamento mappa...</div>
       </div>
     </section>
 
@@ -1348,6 +1313,48 @@
         </details>`).join('');
     }
 
+    function renderHouseMap(){
+      const box=$('houseMap');
+      if(!box) return;
+      const zones=[
+        ['Cucina','🍳'],['Zona giorno','🛋️'],['Camere','🛏️'],['Bagno','🚿'],['Esterno','🌿'],['Territorio Polly','🐾']
+      ];
+      const visible=currentQuests.filter(q=>questCanBeDone(q));
+      box.innerHTML=zones.map(([zone,icon])=>{
+        const count=visible.filter(q=>String(q.zone||'Casa').trim()===zone).length;
+        return `<div class="zone quest-linked" data-map-zone="${esc(zone)}" role="button" tabindex="0" title="Apri le quest di ${esc(zone)}">
+          <div class="zone-icon">${icon}</div>
+          <div class="zone-name">${esc(zone)}</div>
+          <div class="zone-quest-count">⚔️ ${count} ${count===1?'quest':'quest'}</div>
+          <span class="zone-quest-link">Clicca per vedere le quest →</span>
+          <div class="chaos">Chaos 0%</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+        </div>`;
+      }).join('');
+      box.querySelectorAll('[data-map-zone]').forEach(el=>{
+        const open=()=>openQuestZone(el.dataset.mapZone);
+        el.addEventListener('click',open);
+        el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+      });
+    }
+
+    function openQuestZone(zone){
+      const navButton=document.querySelector('.nav-button[data-section="quests"]');
+      if(navButton) navButton.click();
+      const groups=document.querySelectorAll('#dailyAvailable .quest-zone-group, #recurringAvailable .quest-zone-group, #weeklyAvailable .quest-zone-group, #occasionalAvailable .quest-zone-group, #bossQuests .quest-zone-group');
+      let first=null;
+      groups.forEach(group=>{
+        const label=group.querySelector('.quest-zone-label');
+        const text=label?.textContent||'';
+        const matches=text.includes(zone);
+        group.open=matches;
+        if(matches&&!first) first=group;
+      });
+      if(first){
+        setTimeout(()=>first.scrollIntoView({behavior:'smooth',block:'start'}),50);
+      }
+    }
+
     function questCard(q){
       const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
       const check=q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : '';
@@ -1497,6 +1504,7 @@
       if(completionError) console.error(completionError);
 
       currentQuests=data||[];
+      renderHouseMap();
       renderManagementQuests();
 
       const visible=currentQuests.filter(q=>questCanBeDone(q) && !completionBlocksQuest(q,completions||[]));
