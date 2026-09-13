@@ -2010,7 +2010,7 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); await loadPendingDailySkips(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
     }
 
     async function login(){
