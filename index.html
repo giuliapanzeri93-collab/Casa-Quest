@@ -646,7 +646,19 @@
         text-align:left;
       }
     }
-  </style>
+  
+    .quest-zone-group{border:1px solid rgba(255,255,255,.10);border-radius:12px;margin:8px 0;overflow:hidden;background:rgba(255,255,255,.025)}
+    .quest-zone-group summary{cursor:pointer;list-style:none;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+    .quest-zone-group summary::-webkit-details-marker{display:none}
+    .quest-zone-group summary::after{content:'⌄';font-size:18px;opacity:.75;transition:transform .15s}
+    .quest-zone-group[open] summary::after{transform:rotate(180deg)}
+    .quest-zone-group summary:hover{background:rgba(255,255,255,.04)}
+    .quest-zone-label{display:flex;align-items:center;gap:8px}
+    .quest-zone-count{font-size:12px;font-weight:600;opacity:.65}
+    .quest-zone-content{padding:0 8px 8px}
+    .quest-zone-content>.quest{margin:8px 0}
+
+</style>
 </head>
 
 <body>
@@ -1315,6 +1327,27 @@
       return false;
     }
 
+    function zoneDisplayName(zone){
+      const z=String(zone||'Casa').trim();
+      const icons={'Cucina':'🍳','Zona giorno':'🛋️','Camere':'🛏️','Bagno':'🚿','Esterno':'🌿','Territorio Polly':'🐾'};
+      return `${icons[z]||'🏠'} ${esc(z)}`;
+    }
+
+    function renderZoneGroups(items, renderer=questCard){
+      if(!items || !items.length) return '';
+      const groups=new Map();
+      items.forEach(q=>{
+        const zone=String(q.zone||'Casa').trim()||'Casa';
+        if(!groups.has(zone)) groups.set(zone,[]);
+        groups.get(zone).push(q);
+      });
+      return Array.from(groups.entries()).map(([zone,qs])=>`
+        <details class="quest-zone-group">
+          <summary><span class="quest-zone-label">${zoneDisplayName(zone)} <span class="quest-zone-count">${qs.length} ${qs.length===1?'quest':'quest'}</span></span></summary>
+          <div class="quest-zone-content">${qs.map(renderer).join('')}</div>
+        </details>`).join('');
+    }
+
     function questCard(q){
       const urgent=q.urgent ? '<span class="tag urgent-tag">URGENTE</span>' : '';
       const check=q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : '';
@@ -1439,7 +1472,7 @@
       const plan=buildDailyPlan(candidates,budget);
       const box=$('dailyQuests');
       const chosenIds=new Set(plan.chosen.map(q=>q.id));
-      box.innerHTML=plan.chosen.length ? plan.chosen.map(questCard).join('') : '<div class="empty-plan">🎉 Nessuna quest disponibile: il dungeon è stranamente in ordine.</div>';
+      box.innerHTML=plan.chosen.length ? renderZoneGroups(plan.chosen) : '<div class="empty-plan">🎉 Nessuna quest disponibile: il dungeon è stranamente in ordine.</div>';
       $('dailyPlanSummary').textContent=plan.chosen.length
         ? `${plan.chosen.length} quest · circa ${plan.total} min su ${budget} min disponibili · ${Math.max(0,budget-plan.total)} min liberi`
         : `0 quest · ${budget} min disponibili`;
@@ -1480,11 +1513,11 @@
       $('dailyBudgetMinutes').value=budget;
       renderDailyPlan(normal,budget);
 
-      dailyBox.innerHTML=daily.length?daily.map(questCard).join(''):'<div class="muted">Nessuna Daily disponibile oggi.</div>';
-      recurringBox.innerHTML=recurring.length?recurring.map(questCard).join(''):'<div class="muted">Nessuna quest ricorrente disponibile oggi.</div>';
-      weeklyBox.innerHTML=weekly.length?weekly.map(questCard).join(''):'<div class="muted">Nessuna Weekly disponibile questa settimana.</div>';
-      occasionalBox.innerHTML=occasional.length?occasional.map(questCard).join(''):'<div class="muted">Nessuna quest occasionale disponibile.</div>';
-      boss.innerHTML=bosses.length?bosses.map(questCard).join(''):'<div class="muted">Nessun Boss disponibile.</div>';
+      dailyBox.innerHTML=daily.length?renderZoneGroups(daily):'<div class="muted">Nessuna Daily disponibile oggi.</div>';
+      recurringBox.innerHTML=recurring.length?renderZoneGroups(recurring):'<div class="muted">Nessuna quest ricorrente disponibile oggi.</div>';
+      weeklyBox.innerHTML=weekly.length?renderZoneGroups(weekly):'<div class="muted">Nessuna Weekly disponibile questa settimana.</div>';
+      occasionalBox.innerHTML=occasional.length?renderZoneGroups(occasional):'<div class="muted">Nessuna quest occasionale disponibile.</div>';
+      boss.innerHTML=bosses.length?renderZoneGroups(bosses):'<div class="muted">Nessun Boss disponibile.</div>';
 
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
       document.querySelectorAll('[data-transfer]').forEach(btn=>btn.addEventListener('click',()=>transferQuest(btn.dataset.transfer)));
@@ -1674,9 +1707,9 @@
     }
 
     function renderManagementQuests(){
-      const box=$("managementQuestList");
+      const box=$('managementQuestList');
       if(!currentQuests.length){box.innerHTML='<div class="muted">Nessuna quest ancora configurata.</div>';return;}
-      box.innerHTML=currentQuests.map(q=>{
+      const renderManagementCard=(q)=>{
         const deletion=pendingDeletionRequests.find(r=>r.quest_id===q.id);
         const mandatoryRemoval=pendingMandatoryRemovalRequests.find(r=>r.quest_id===q.id);
         const deletionUi=deletion
@@ -1690,15 +1723,16 @@
             : `<button class="small-button" data-remove-mandatory="${q.id}" type="button">⭐ Rimuovi obbligatorietà</button>`)
           : '';
         return `<div class="quest">
-        <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
-        ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
-        ${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}
-        <div class="quest-meta">${esc(q.ownership||"Contesa")} · ${esc(q.zone||"Casa")} · ${esc(q.frequency||"occasionale")} · ${Number(q.estimated_minutes||10)} min</div></div>
-        <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
-        <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
-        <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${skipUi}${deletionUi}${mandatoryUi}</span></div>
-      </div>`;
-      }).join('');
+          <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
+          ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
+          ${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}
+          <div class="quest-meta">${esc(q.ownership||'Contesa')} · ${esc(q.zone||'Casa')} · ${esc(q.frequency||'occasionale')} · ${Number(q.estimated_minutes||10)} min</div></div>
+          <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
+          <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
+          <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${skipUi}${deletionUi}${mandatoryUi}</span></div>
+        </div>`;
+      };
+      box.innerHTML=renderZoneGroups(currentQuests,renderManagementCard);
       box.querySelectorAll('[data-edit-quest]').forEach(btn=>btn.addEventListener('click',()=>openEditQuest(btn.dataset.editQuest)));
       box.querySelectorAll('[data-delete-quest]').forEach(btn=>btn.addEventListener('click',()=>requestQuestDeletion(btn.dataset.deleteQuest)));
       box.querySelectorAll('[data-skip-quest]').forEach(btn=>btn.addEventListener('click',()=>requestDailySkip(btn.dataset.skipQuest)));
