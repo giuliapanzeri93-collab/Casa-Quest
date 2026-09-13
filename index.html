@@ -1328,6 +1328,7 @@
         <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
         <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           ${canTransferQuest(q) ? `<button class="small-button" data-transfer="${q.id}" type="button">↔️ Trasferisci</button>` : ''}
+          ${q.quest_type==='normal' && String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : ''}
           <button data-complete="${q.id}">Completa</button>
         </span></div></div>`;
     }
@@ -1413,8 +1414,9 @@
         return Math.random()-.5;
       });
       const chosen=[]; let total=0;
-      const mandatory=shuffled.filter(q=>q.frequency==='daily' && q.mandatory_daily);
-      const optional=shuffled.filter(q=>!mandatory.includes(q));
+      const available=shuffled.filter(q=>!skippedForToday(q));
+      const mandatory=available.filter(q=>q.frequency==='daily' && q.mandatory_daily);
+      const optional=available.filter(q=>!mandatory.includes(q));
       for(const q of mandatory){
         const mins=Math.max(1,Number(q.estimated_minutes||10));
         chosen.push(q);
@@ -1443,6 +1445,7 @@
 
       document.querySelectorAll('[data-complete]').forEach(btn=>btn.addEventListener('click',()=>openCompletion(btn.dataset.complete)));
       document.querySelectorAll('[data-transfer]').forEach(btn=>btn.addEventListener('click',()=>transferQuest(btn.dataset.transfer)));
+      document.querySelectorAll('[data-skip-quest]').forEach(btn=>btn.addEventListener('click',()=>requestDailySkip(btn.dataset.skipQuest)));
       return chosenIds;
     }
 
@@ -1813,7 +1816,7 @@
         p_quest_id:id,p_skip_date:todayISO(),p_reason:reason
       });
       if(error){alert('Non sono riuscita a inviare la richiesta: '+error.message);return;}
-      await loadPendingDailySkips(); setConnectionStatus('⏭️ Richiesta inviata: serve l’approvazione dell’altro.','ok');
+      await loadPendingDailySkips(); renderDailyPlan(currentQuests.filter(q=>questCanBeDone(q)),getDailyBudget()); setConnectionStatus('⏭️ Richiesta inviata: serve l’approvazione dell’altro.','ok');
     }
 
     function otherPlayerName(){
