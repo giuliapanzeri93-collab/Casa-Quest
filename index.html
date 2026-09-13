@@ -1329,7 +1329,7 @@
         <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
         <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           ${canTransferQuest(q) ? `<button class="small-button" data-transfer="${q.id}" type="button">↔️ Trasferisci</button>` : ''}
-          ${q.quest_type==='normal' && String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : ''}
+          ${String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : ''}
           <button data-complete="${q.id}">Completa</button>
         </span></div></div>`;
     }
@@ -1416,7 +1416,7 @@
       });
       const chosen=[]; let total=0;
       const available=shuffled.filter(q=>!skippedForToday(q));
-      const mandatory=available.filter(q=>q.frequency==='daily' && q.mandatory_daily);
+      const mandatory=available.filter(q=>String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true);
       const optional=available.filter(q=>!mandatory.includes(q));
       for(const q of mandatory){
         const mins=Math.max(1,Number(q.estimated_minutes||10));
@@ -1682,7 +1682,7 @@
         const deletionUi=deletion
           ? `<span class="tag">🗑️ ELIMINAZIONE IN ATTESA</span>`
           : `<button class="small-button" data-delete-quest="${q.id}" type="button">🗑️ Elimina</button>`;
-        const mandatory = q.quest_type==='normal' && String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true;
+        const mandatory = String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true;
         const skipUi = mandatory ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : '';
         const mandatoryUi=q.mandatory_daily
           ? (mandatoryRemoval
