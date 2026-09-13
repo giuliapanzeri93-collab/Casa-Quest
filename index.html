@@ -1833,8 +1833,19 @@
       const meId=currentPlayer()?.id;
       const others=pendingDailySkips.filter(r=>r.player_id!==meId);
       const mine=pendingDailySkips.filter(r=>r.player_id===meId);
-      const a=others.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">${esc(r.reason||'Nessun motivo')} · ${esc(r.skip_date)}</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-skip-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-skip-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('');
-      const b=mine.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">Richiesta per ${esc(r.skip_date)}. In attesa dell’altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('');
+      const a=others.map(r=>{
+        const title=esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest');
+        const meta=esc(r.reason||'Nessun motivo')+' · '+esc(r.skip_date);
+        if(r.status==='pending') return `<div class="quest"><div class="quest-name">⏭️ ${title}</div><div class="quest-meta">${meta}</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-skip-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-skip-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`;
+        if(r.status==='approved') return `<div class="quest"><div class="quest-name">⏭️ ${title}</div><div class="quest-meta">${meta}</div><div class="quest-bottom"><span class="tag">APPROVATA</span></div></div>`;
+        return '';
+      }).join('');
+      const b=mine.map(r=>{
+        const title=esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest');
+        if(r.status==='pending') return `<div class="quest"><div class="quest-name">⏭️ ${title}</div><div class="quest-meta">Richiesta per ${esc(r.skip_date)}. In attesa dell’altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`;
+        if(r.status==='approved') return `<div class="quest"><div class="quest-name">⏭️ ${title}</div><div class="quest-meta">Deroga approvata per ${esc(r.skip_date)}.</div><div class="quest-bottom"><span class="tag">APPROVATA</span></div></div>`;
+        return '';
+      }).join('');
       box.innerHTML=(a+b)||'<div class="muted">Nessuna deroga in attesa.</div>';
       box.querySelectorAll('[data-skip-review]').forEach(btn=>btn.addEventListener('click',()=>reviewDailySkip(btn.dataset.skipReview,btn.dataset.value==='yes')));
     }
