@@ -972,10 +972,7 @@
           <p class="muted">Una quest viene eliminata definitivamente solo dopo l'approvazione dell'altro giocatore.</p>
           <div id="pendingQuestDeletions"><div class="muted">Caricamento...</div></div>
         </div>
-        <div class="card">
-          <h3>⭐ Rimozioni dall’obbligatorietà</h3>
-          <p class="muted">Una Daily obbligatoria resta nel feed finché l’altro giocatore non approva la rimozione dell’obbligatorietà.</p>
-          <div id="pendingMandatoryRemovals"><div class="muted">Caricamento...</div></div>
+      </div>
         </div>
       </div>
     </section>
@@ -1117,6 +1114,11 @@
       <form id="editQuestForm">
         <input id="editQuestId" type="hidden">
         <div class="form-grid">
+          <div class="form-field"><label>Tipo quest</label><select id="editQuestType"><option value="normal">Quest normale</option><option value="check">🔎 Check Quest</option></select></div>
+          <div id="editCheckFields" style="display:none;">
+            <div class="form-field"><label>Bonus Check XP</label><input id="editCheckBonusXP" type="number" min="0" step="1" value="0"></div>
+            <div class="form-field"><label>Bonus Check 🪙</label><input id="editCheckBonusCoins" type="number" min="0" step="1" value="0"></div>
+          </div>
           <div class="form-field full"><label>Nome</label><input id="editQuestTitle" required></div>
           <div class="form-field full"><label>Descrizione</label><textarea id="editQuestDescription"></textarea></div>
           <div class="form-field"><label>Zona</label><select id="editQuestZone"><option>Casa</option><option>Cucina</option><option>Zona giorno</option><option>Camere</option><option>Bagno</option><option>Esterno</option><option>Territorio Polly</option></select></div>
@@ -1701,6 +1703,10 @@
       $("editQuestXP").value=Number(q.base_xp||0);
       $("editQuestCoins").value=Number(q.base_coins||0);
       $("editQuestFrequency").value=q.frequency||'occasional';
+      $("editQuestType").value=q.quest_type||'normal';
+      $("editCheckBonusXP").value=Number(q.check_bonus_xp||0);
+      $("editCheckBonusCoins").value=Number(q.check_bonus_coins||0);
+      $("editCheckFields").style.display=$("editQuestType").value==='check'?'block':'none';
       $("editQuestTransferable").checked=!!q.transferable;
       $("editQuestStreak").checked=!!q.counts_for_couple_streak;
       $("editQuestModal").style.display='flex';
@@ -1725,7 +1731,7 @@
         new_estimated_minutes:Number($("editQuestMinutes").value),
         new_counts_for_couple_streak:$("editQuestStreak").checked,
         new_transferable:$("editQuestTransferable").checked,
-        new_quest_type:quest.quest_type||'normal'
+        new_quest_type:$('editQuestType').value
       };
       if(!requested.new_title){alert('Il nome della quest è obbligatorio.');return;}
       const btn=$("submitQuestChange"); btn.disabled=true; btn.textContent='INVIO...';
@@ -1769,7 +1775,7 @@
         if(r.new_base_coins!==null)changes.push('Monete: '+Number(r.new_base_coins));
         if(r.new_zone!==null)changes.push('Zona: '+esc(r.new_zone));
         if(r.new_frequency!==null)changes.push('Frequenza: '+esc(r.new_frequency));
-        return `<div class="quest"><div class="quest-name">✏️ Modifica: ${esc(r.quests?.title||'Quest')}</div>
+        return `<div class="quest"><div class="quest-name">✏️ Modifica: ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div>
           <div class="quest-meta" style="margin-top:8px">${changes.join(' · ')}</div>
           <div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-change-approve="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-change-approve="${r.id}" data-value="no">Rifiuta</button></span></div></div>`;
       }).join(''):'<div class="muted">Nessuna modifica da approvare.</div>';
@@ -1813,8 +1819,8 @@
       pendingDailySkips=data||[];
       const others=pendingDailySkips.filter(r=>r.player_id!==currentUser.id);
       const mine=pendingDailySkips.filter(r=>r.player_id===currentUser.id);
-      const a=others.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">${esc(r.reason||'Nessun motivo')} · ${esc(r.skip_date)}</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-skip-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-skip-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('');
-      const b=mine.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Richiesta per ${esc(r.skip_date)}. In attesa dell’altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('');
+      const a=others.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">${esc(r.reason||'Nessun motivo')} · ${esc(r.skip_date)}</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-skip-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-skip-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('');
+      const b=mine.map(r=>`<div class="quest"><div class="quest-name">⏭️ ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">Richiesta per ${esc(r.skip_date)}. In attesa dell’altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('');
       box.innerHTML=(a+b)||'<div class="muted">Nessuna deroga in attesa.</div>';
       box.querySelectorAll('[data-skip-review]').forEach(btn=>btn.addEventListener('click',()=>reviewDailySkip(btn.dataset.skipReview,btn.dataset.value==='yes')));
     }
@@ -1838,59 +1844,15 @@
       renderManagementQuests();
       setConnectionStatus("🗑️ Richiesta di eliminazione inviata: ora deve essere approvata dall'altro giocatore.","ok");
     }
-
-    async function requestMandatoryRemoval(id){
-      const quest=currentQuests.find(q=>q.id===id);
-      if(!quest || !quest.mandatory_daily)return;
-      const ok=confirm(`Vuoi chiedere di togliere “${quest.title}” dal feed Daily obbligatorio?\n\nLa quest resterà una Daily normale. La modifica avverrà solo dopo l'approvazione dell'altro giocatore.`);
-      if(!ok)return;
-      const {error}=await supabaseClient.rpc('request_mandatory_removal',{p_quest_id:id});
-      if(error){console.error(error);alert('Non sono riuscita a inviare la richiesta: '+error.message);return;}
-      await loadPendingMandatoryRemovals();
-      renderManagementQuests();
-      setConnectionStatus('⭐ Richiesta di rimozione dell’obbligatorietà inviata: ora deve essere approvata dall’altro giocatore.','ok');
-    }
-
-    async function loadPendingMandatoryRemovals(){
-      const box=$('pendingMandatoryRemovals');
-      const {data,error}=await supabaseClient.from('quest_mandatory_removal_requests')
-        .select('id,quest_id,requested_by,status,created_at,quests(title,ownership)')
-        .eq('status','pending').order('created_at',{ascending:false});
-      if(error){
-        console.error(error);
-        pendingMandatoryRemovalRequests=[];
-        box.innerHTML='<div class="muted">Impossibile leggere le richieste di rimozione dell’obbligatorietà.</div>';
-        return;
-      }
-      pendingMandatoryRemovalRequests=data||[];
-      const mine=pendingMandatoryRemovalRequests.filter(r=>r.requested_by===currentUser.id);
-      const others=pendingMandatoryRemovalRequests.filter(r=>r.requested_by!==currentUser.id);
-      const ownHtml=mine.length ? mine.map(r=>`<div class="quest"><div class="quest-name">⭐ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Hai chiesto di togliere l’obbligatorietà. La Daily resta obbligatoria finché l’altro giocatore non approva.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('') : '';
-      const otherHtml=others.length ? others.map(r=>`<div class="quest"><div class="quest-name">⭐ Rimuovi obbligatorietà: ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">L’altro giocatore ha chiesto di togliere questa quest dal feed Daily obbligatorio.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-mandatory-review="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-mandatory-review="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('') : '';
-      box.innerHTML=(ownHtml+otherHtml)||'<div class="muted">Nessuna richiesta di rimozione in attesa.</div>';
-      box.querySelectorAll('[data-mandatory-review]').forEach(btn=>btn.addEventListener('click',()=>reviewMandatoryRemoval(btn.dataset.mandatoryReview,btn.dataset.value==='yes')));
-    }
-
-    async function reviewMandatoryRemoval(id,approve){
-      let reason=null;
-      if(!approve)reason=prompt('Motivo del rifiuto (facoltativo):');
-      const {error}=await supabaseClient.rpc('review_mandatory_removal',{p_request_id:id,p_approve:approve,p_rejection_reason:reason});
-      if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
-      await loadQuests();
-      await loadPendingMandatoryRemovals();
-      renderManagementQuests();
-      setConnectionStatus(approve?'⭐ Obbligatorietà rimossa dopo approvazione.':'❌ Rimozione dell’obbligatorietà rifiutata.',approve?'ok':'error');
-    }
-
     async function loadPendingQuestDeletions(){
       const box=$("pendingQuestDeletions");
       const {data,error}=await supabaseClient.from('quest_deletion_requests')
-        .select('id,quest_id,requested_by,status,created_at,quests(title,ownership)')
+        .select('id,quest_id,requested_by,status,created_at')
         .eq('status','pending')
         .order('created_at',{ascending:false});
       if(error){
         console.error(error);
-        box.innerHTML='<div class="muted">Impossibile leggere le richieste di eliminazione.</div>';
+        box.innerHTML='<div class="muted">Impossibile leggere le richieste di eliminazione. Controlla che il SQL delle eliminazioni sia stato eseguito.</div>';
         pendingDeletionRequests=[];
         return;
       }
@@ -1898,10 +1860,10 @@
       const mine=pendingDeletionRequests.filter(r=>r.requested_by===currentUser.id);
       const others=pendingDeletionRequests.filter(r=>r.requested_by!==currentUser.id);
       const ownHtml=mine.length
-        ? mine.map(r=>`<div class="quest"><div class="quest-name">🗑️ ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">Hai chiesto l'eliminazione. In attesa dell'approvazione dell'altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('')
+        ? mine.map(r=>`<div class="quest"><div class="quest-name">🗑️ ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">Hai chiesto l'eliminazione. In attesa dell'approvazione dell'altro giocatore.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span></div></div>`).join('')
         : '';
       const otherHtml=others.length
-        ? others.map(r=>`<div class="quest"><div class="quest-name">🗑️ Elimina: ${esc(r.quests?.title||'Quest')}</div><div class="quest-meta">L'altro giocatore ha chiesto di eliminare questa quest.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-delete-approve="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-delete-approve="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('')
+        ? others.map(r=>`<div class="quest"><div class="quest-name">🗑️ Elimina: ${esc((currentQuests.find(q=>q.id===r.quest_id)||{}).title||'Quest')}</div><div class="quest-meta">L'altro giocatore ha chiesto di eliminare questa quest.</div><div class="quest-bottom"><span class="tag">IN ATTESA</span><span><button data-delete-approve="${r.id}" data-value="yes">Approva</button> <button class="small-button" data-delete-approve="${r.id}" data-value="no">Rifiuta</button></span></div></div>`).join('')
         : '';
       box.innerHTML=(ownHtml+otherHtml)||'<div class="muted">Nessuna richiesta di eliminazione in attesa.</div>';
       box.querySelectorAll('[data-delete-approve]').forEach(btn=>btn.addEventListener('click',()=>reviewQuestDeletion(btn.dataset.deleteApprove,btn.dataset.value==='yes')));
@@ -1995,7 +1957,7 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
     }
 
     async function login(){
@@ -2032,6 +1994,14 @@
       $("questFrequency").addEventListener("change",syncMandatoryQuestOption);
       syncMandatoryQuestOption();
       $("questForm").addEventListener("submit",createQuestFromForm);
+      $("editQuestType").addEventListener("change",()=>{
+        const isCheck=$("editQuestType").value==='check';
+        $("editCheckFields").style.display=isCheck?'block':'none';
+        if(isCheck) $("editQuestFrequency").value='occasional';
+      });
+      $("editQuestFrequency").addEventListener("change",()=>{
+        if($("editQuestType").value==='check') $("editQuestFrequency").value='occasional';
+      });
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
