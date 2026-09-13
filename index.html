@@ -1241,7 +1241,7 @@
 
     function questCanBeDone(q){
       const ownership=String(q.ownership||"").toLowerCase();
-      const myName=currentPlayers.find(p=>p.id===currentUser?.id)?.name;
+      const myName=currentPlayer()?.name;
       if(ownership==='giulia' && myName!=='Giulia') return false;
       if(ownership==='diego' && myName!=='Diego') return false;
       return true;
@@ -1453,7 +1453,8 @@
 
     async function loadApprovals(){
       const box=$("pendingApprovals");
-      const ids=currentPlayers.filter(p=>p.id!==currentUser.id).map(p=>p.id);
+      const me=currentPlayer();
+      const ids=currentPlayers.filter(p=>p.id!==me?.id && p.auth_user_id!==currentUser?.id).map(p=>p.id);
       if(!ids.length){box.innerHTML='<div class="muted">Nessun altro giocatore.</div>';return;}
       const {data,error}=await supabaseClient.from("quest_completions").select("*, quests(title,base_xp,base_coins)").eq("status","pending").in("player_id",ids).order("submitted_at",{ascending:false});
       if(error){
@@ -1486,6 +1487,109 @@
       if(error){console.error(error);alert('Non sono riuscita a trasferire la quest: '+error.message);return;}
       await loadQuests();
       setConnectionStatus(`↔️ Quest trasferita a ${target.name}.`, 'ok');
+    }
+
+    function currentPlayer(){
+      if(!currentUser) return null;
+      return currentPlayers.find(p=>p.id===currentUser.id || p.auth_user_id===currentUser.id) || null;
+    }
+
+    function canTransferQuest(q){
+      if(!q || !q.transferable) return false;
+      const me=currentPlayer();
+      if(!me) return false;
+      const owner=String(q.ownership||'').toLowerCase();
+      return (owner==='giulia' && me.name==='Giulia') || (owner==='diego' && me.name==='Diego');
+    }
+
+    function openCompletion(id){
+      selectedQuest=currentQuests.find(q=>q.id===id);
+      if(!selectedQuest) return;
+      const me=currentPlayer();
+      const otherPlayers=currentPlayers.filter(p=>p.id!==me?.id && p.auth_user_id!==currentUser?.id);
+      $('completionTitle').textContent='Completa: '+selectedQuest.title;
+      $('completionDescription').textContent=selectedQuest.description || 'Inserisci come hai svolto la quest.';
+      $('completionPercent').value=100;
+      $('completionMinutes').value=Number(selectedQuest.estimated_minutes||10);
+      $('completionDate').value='today';
+      $('completionAssistEnabled').value='no';
+      $('completionAssistPercent').value=20;
+      $('completionComments').value='';
+      $('completionAssistPlayer').innerHTML=otherPlayers.length
+        ? otherPlayers.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')
+        : '<option value="">Nessun altro giocatore</option>';
+      toggleAssistFields();
+      updatePreview();
+      $('completionModal').style.display='flex';
+    }
+
+    function closeCompletion(){
+      selectedQuest=null;
+      $('completionModal').style.display='none';
+    }
+
+    function completionDateToISO(value){
+      const d=new Date();
+      if(value==='yesterday') d.setDate(d.getDate()-1);
+      return dateKey(d);
+    }
+
+    function toggleAssistFields(){
+      $('assistFields').style.display=$('completionAssistEnabled').value==='yes' ? 'block' : 'none';
+      updatePreview();
+    }
+
+    function updatePreview(){
+      if(!selectedQuest) return;
+      const t=Math.max(1,Number($('completionMinutes').value)||1);
+      const est=Math.max(1,Number(selectedQuest.estimated_minutes||10));
+      const pct=Math.min(100,Math.max(1,Number($('completionPercent').value)||1));
+      const ratio=Math.min(Math.max(t/est,.5),2);
+      const rawXp=Math.round(Number(selectedQuest.base_xp||0)*(.5+.5*ratio));
+      const totalXp=Math.round(rawXp*(pct/100));
+      const assistPct=$('completionAssistEnabled').value==='yes' ? Math.min(100,Math.max(0,Number($('completionAssistPercent').value)||0)) : 0;
+      const helperXp=Math.round(totalXp*(assistPct/100));
+      const ownerXp=totalXp-helperXp;
+      $('xpPreview').textContent=`Anteprima: ${totalXp} XP totali → ${ownerXp} XP a te + ${helperXp} XP all'aiutante · ${Number(selectedQuest.base_coins||0)} 🪙 · completamento ${pct}%.`;
+    }
+
+    async function submitCompletion(){
+      if(!selectedQuest) return;
+      const mins=Math.round(Number($('completionMinutes').value)||0);
+      const pct=Math.round(Number($('completionPercent').value)||0);
+      const date=completionDateToISO($('completionDate').value);
+      const assistEnabled=$('completionAssistEnabled').value==='yes';
+      const assistPlayerId=assistEnabled ? $('completionAssistPlayer').value || null : null;
+      const assistPct=assistEnabled ? Math.round(Number($('completionAssistPercent').value)||0) : 0;
+      const comments=$('completionComments').value.trim();
+      if(mins<1||mins>480){alert('Inserisci un tempo tra 1 e 480 minuti.');return;}
+      if(pct<1||pct>100){alert('La percentuale deve essere tra 1% e 100%.');return;}
+      if(date!==dateKey(new Date()) && date!==dateKey(new Date(Date.now()-86400000))){alert('Puoi registrare solo oggi o ieri.');return;}
+      if(assistEnabled && (!assistPlayerId || assistPct<1 || assistPct>100)){alert('Inserisci giocatore e percentuale di aiuto.');return;}
+      const btn=$('confirmCompletion'); btn.disabled=true; btn.textContent='INVIO...';
+      const {error}=await supabaseClient.rpc('submit_quest_completion',{
+        p_quest_id:selectedQuest.id,
+        p_time_minutes:mins,
+        p_completion_percent:pct,
+        p_assist_player_id:assistPlayerId,
+        p_assist_percent:assistPct,
+        p_completion_comments:comments,
+        p_completion_for_date:date
+      });
+      btn.disabled=false; btn.textContent='Invia completamento';
+      if(error){console.error(error);alert('Non sono riuscita a inviare la quest: '+error.message);return;}
+      closeCompletion();
+      await loadQuests(); await loadApprovals();
+      setConnectionStatus('✅ Completamento inviato: aspetta l’approvazione dell’altro giocatore.','ok');
+    }
+
+    async function reviewCompletion(id,approve){
+      let reason=null;
+      if(!approve) reason=prompt('Motivo del rifiuto (facoltativo):');
+      const {error}=await supabaseClient.rpc('review_quest_completion',{p_completion_id:id,p_approve:approve,p_rejection_reason:reason});
+      if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
+      await loadApprovals(); await loadPlayers(); await loadQuests();
+      setConnectionStatus(approve?'✅ Quest approvata e ricompensa assegnata.':'Quest rifiutata.',approve?'ok':'error');
     }
 
     async function loadPlayers(){
