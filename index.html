@@ -1219,6 +1219,7 @@
     let currentUser = null;
     let currentPlayers = [];
     let currentQuests = [];
+    let pendingDailySkips=[];
     let pendingDeletionRequests = [];
     let pendingMandatoryRemovalRequests = [];
     let selectedQuest = null;
@@ -1302,7 +1303,7 @@
 
     function completionDateValue(c){ return c.completion_for_date || dateKey(c.completed_at||c.submitted_at); }
     function skippedForToday(q){
-      return pendingDailySkips.some(r=>r.status==='approved' && r.quest_id===q.id && r.player_id===currentUser.id && r.skip_date===todayISO());
+      return pendingDailySkips.some(r=>r.status==='approved' && r.quest_id===q.id && r.player_id===currentPlayer()?.id && r.skip_date===todayISO());
     }
 
     function completionBlocksQuest(q, completionRows){
