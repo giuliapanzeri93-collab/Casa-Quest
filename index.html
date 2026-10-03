@@ -461,6 +461,32 @@
       gap:12px;
     }
 
+    .chaos-summary{
+      margin-bottom:14px;
+      padding:14px 16px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:linear-gradient(145deg,#2a2135,#1d1725);
+    }
+    .chaos-summary-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .chaos-summary-title{font-size:16px;font-weight:700}
+    .chaos-summary-value{font-size:20px;font-weight:800}
+    .chaos-summary-sub{margin-top:4px;color:var(--muted);font-size:12px}
+    .chaos-summary-bar{
+      height:10px;
+      background:#120f17;
+      border-radius:10px;
+      overflow:hidden;
+      margin-top:10px;
+    }
+    .chaos-summary-fill{height:100%;background:var(--red);transition:width .2s ease}
+    .chaos-level{font-size:12px;margin-top:7px;color:var(--muted)}
+
     .zone{
       min-height:130px;
       background:linear-gradient(145deg,#30263d,#211a29);
@@ -1043,6 +1069,18 @@
     <section class="section" id="map">
       <div class="section-title">🗺️ Mappa della Casa</div>
 
+      <div class="chaos-summary" id="chaosSummary">
+        <div class="chaos-summary-top">
+          <div>
+            <div class="chaos-summary-title">🌪️ Caos della casa</div>
+            <div class="chaos-summary-sub">Il livello medio di Caos delle zone.</div>
+          </div>
+          <div class="chaos-summary-value" id="chaosTotalValue">0%</div>
+        </div>
+        <div class="chaos-summary-bar"><div class="chaos-summary-fill" id="chaosTotalFill" style="width:0%"></div></div>
+        <div class="chaos-level" id="chaosTotalLevel">🟢 Tutto tranquillo</div>
+      </div>
+
       <div class="map" id="houseMap">
         <div class="muted">Caricamento mappa...</div>
       </div>
@@ -1273,6 +1311,7 @@
     let currentUser = null;
     let currentPlayers = [];
     let currentQuests = [];
+    let houseChaos = {};
     let currentCompletions = [];
     let pendingDailySkips=[];
     let pendingDeletionRequests = [];
@@ -1427,6 +1466,23 @@
         </details>`).join('');
     }
 
+    function chaosLevel(percent){
+      const n=Math.max(0,Math.min(100,Number(percent)||0));
+      if(n<25) return '🟢 Tutto tranquillo';
+      if(n<50) return '🟡 Zona trascurata';
+      if(n<75) return '🟠 Caos serio';
+      return '🔴 Zona nel caos';
+    }
+
+    function renderHouseChaosSummary(){
+      const values=Object.values(houseChaos);
+      const avg=values.length ? Math.round(values.reduce((a,b)=>a+Number(b||0),0)/values.length) : 0;
+      const value=$('chaosTotalValue'), fill=$('chaosTotalFill'), level=$('chaosTotalLevel');
+      if(value) value.textContent=`${avg}%`;
+      if(fill) fill.style.width=`${avg}%`;
+      if(level) level.textContent=chaosLevel(avg);
+    }
+
     function renderHouseMap(){
       const box=$('houseMap');
       if(!box) return;
@@ -1434,15 +1490,17 @@
         ['Cucina','🍳'],['Zona giorno','🛋️'],['Camere','🛏️'],['Bagno','🚿'],['Esterno','🌿'],['Territorio Polly','🐾']
       ];
       const visible=currentQuests.filter(q=>questCanBeDone(q));
+      renderHouseChaosSummary();
       box.innerHTML=zones.map(([zone,icon])=>{
         const count=visible.filter(q=>String(q.zone||'Casa').trim()===zone).length;
+        const chaos=Math.max(0,Math.min(100,Number(houseChaos[zone]||0)));
         return `<div class="zone quest-linked" data-map-zone="${esc(zone)}" role="button" tabindex="0" title="Apri le quest di ${esc(zone)}">
           <div class="zone-icon">${icon}</div>
           <div class="zone-name">${esc(zone)}</div>
           <div class="zone-quest-count">⚔️ ${count} ${count===1?'quest':'quest'}</div>
           <span class="zone-quest-link">Clicca per vedere le quest →</span>
-          <div class="chaos">Chaos 0%</div>
-          <div class="chaosbar"><div class="chaosfill" style="width:0%"></div></div>
+          <div class="chaos">🌪️ Caos ${chaos}% · ${chaosLevel(chaos)}</div>
+          <div class="chaosbar"><div class="chaosfill" style="width:${chaos}%"></div></div>
         </div>`;
       }).join('');
       box.querySelectorAll('[data-map-zone]').forEach(el=>{
@@ -1450,6 +1508,21 @@
         el.addEventListener('click',open);
         el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
       });
+    }
+
+    async function loadHouseChaos(){
+      const {data,error}=await supabaseClient.rpc('get_house_zone_chaos');
+      if(error){
+        console.error('Caos non disponibile:',error);
+        houseChaos={};
+        renderHouseMap();
+        return;
+      }
+      houseChaos={};
+      (data||[]).forEach(row=>{
+        houseChaos[String(row.zone||'Casa').trim()]=Number(row.chaos_percent||0);
+      });
+      renderHouseMap();
     }
 
     function openQuestZone(zone){
@@ -2283,7 +2356,9 @@
       if(!session){showApp(false);return;}
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
-      await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); await loadPendingDailySkips(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadQuests();
+      await loadHouseChaos();
+      await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); await loadPendingDailySkips(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
       await loadMissionHistory();
     }
 
