@@ -913,6 +913,12 @@
               </div>
 
               <div class="form-field">
+                <label for="questScheduledDate">📅 Giorno specifico</label>
+                <input id="questScheduledDate" type="date">
+                <div class="muted" style="margin-top:5px">La quest comparirà nel Daily solo nel giorno scelto.</div>
+              </div>
+
+              <div class="form-field">
                 <label for="questDifficulty">Difficoltà (1–5)</label>
                 <input id="questDifficulty" type="number" min="1" max="5" value="1" required>
               </div>
@@ -1108,7 +1114,8 @@
           <div class="form-field"><label>XP</label><input id="editQuestXP" type="number" min="0"></div>
           <div class="form-field"><label>Monete</label><input id="editQuestCoins" type="number" min="0"></div>
           <div class="form-field"><label>Frequenza</label><select id="editQuestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="recurring">Ricorrente</option><option value="occasional">Occasionale</option></select></div>
-          <div class="form-field full"><div class="check-row"><label><input id="editQuestStreak" type="checkbox"> Couple Streak</label><label><input id="editQuestTransferable" type="checkbox"> Trasferibile</label></div></div>
+          <div class="form-field"><label for="editQuestScheduledDate">📅 Giorno specifico</label><input id="editQuestScheduledDate" type="date"><div class="muted" style="margin-top:5px">Se impostato, la quest comparirà nel Daily solo quel giorno.</div></div>
+          <div class="form-field full"><div class="check-row"><label><input id="editQuestStreak" type="checkbox"> Couple Streak</label><label><input id="editQuestTransferable" type="checkbox"> Trasferibile</label><label><input id="editQuestMandatory" type="checkbox"> ⭐ Obbligatoria nella Daily</label></div><div class="muted" id="editMandatoryHint" style="margin-top:8px">L'obbligatorietà si può aggiungere da qui. Per rimuoverla resta attiva la procedura di approvazione già esistente.</div></div>
         </div>
         <div class="form-actions"><button type="button" class="small-button" id="cancelEditQuest">Annulla</button><button type="submit" class="primary-button" id="submitQuestChange">Invia modifica</button></div>
       </form>
@@ -1241,11 +1248,20 @@
       $("mainApp").style.display=show?"block":"none";
     }
 
+    function todayQuestDate(){ return todayISO(); }
+
+    function hasSpecificDate(q){ return !!q?.scheduled_date; }
+
+    function isScheduledForToday(q){
+      return hasSpecificDate(q) && String(q.scheduled_date)===todayQuestDate();
+    }
+
     function questCanBeDone(q){
       const ownership=String(q.ownership||"").toLowerCase();
       const myName=currentPlayer()?.name;
       if(ownership==='giulia' && myName!=='Giulia') return false;
       if(ownership==='diego' && myName!=='Diego') return false;
+      if(hasSpecificDate(q) && !isScheduledForToday(q)) return false;
       return true;
     }
 
@@ -1511,10 +1527,10 @@
       const checks=currentQuests.filter(q=>q.quest_type==='check' && questCanBeDone(q) && !checkAlreadyDoneToday(q,completions||[]));
       await loadTodayChecks(completions||[]);
       const normal=visible.filter(q=>q.quest_type!=='check' && !q.boss);
-      const daily=normal.filter(q=>q.frequency==='daily');
-      const recurring=normal.filter(q=>q.frequency==='recurring');
-      const weekly=normal.filter(q=>q.frequency==='weekly');
-      const occasional=normal.filter(q=>q.frequency==='occasional');
+      const daily=normal.filter(q=>isScheduledForToday(q) || q.frequency==='daily');
+      const recurring=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='recurring');
+      const weekly=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='weekly');
+      const occasional=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='occasional');
       const bosses=visible.filter(q=>q.boss);
 
       const budget=saveDailyBudget();
@@ -1706,6 +1722,7 @@
       $("questStreak").checked=true;
       $("questTransferable").checked=true;
       $("questMandatory").checked=false;
+      $("questScheduledDate").value="";
       $("questType").value="normal";
       $("questCheckXP").value=5;
       $("questCheckCoins").value=1;
@@ -1734,7 +1751,7 @@
           <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
           ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
           ${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}
-          <div class="quest-meta">${esc(q.ownership||'Contesa')} · ${esc(q.zone||'Casa')} · ${esc(q.frequency||'occasionale')} · ${Number(q.estimated_minutes||10)} min</div></div>
+          <div class="quest-meta">${esc(q.ownership||'Contesa')} · ${esc(q.zone||'Casa')} · ${esc(q.frequency||'occasionale')} · ${Number(q.estimated_minutes||10)} min${q.scheduled_date ? ` · 📅 ${esc(q.scheduled_date)}` : ''}</div></div>
           <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
           <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
           <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${skipUi}${deletionUi}${mandatoryUi}</span></div>
@@ -1760,12 +1777,16 @@
       $("editQuestXP").value=Number(q.base_xp||0);
       $("editQuestCoins").value=Number(q.base_coins||0);
       $("editQuestFrequency").value=q.frequency||'occasional';
+      $("editQuestScheduledDate").value=q.scheduled_date||'';
       $("editQuestType").value=q.quest_type||'normal';
       $("editCheckBonusXP").value=Number(q.check_bonus_xp||0);
       $("editCheckBonusCoins").value=Number(q.check_bonus_coins||0);
       $("editCheckFields").style.display=$("editQuestType").value==='check'?'block':'none';
       $("editQuestTransferable").checked=!!q.transferable;
       $("editQuestStreak").checked=!!q.counts_for_couple_streak;
+      $("editQuestMandatory").checked=!!q.mandatory_daily;
+      $("editQuestMandatory").disabled=!!q.mandatory_daily || $("editQuestType").value==='check' || $("editQuestFrequency").value!=='daily';
+      $("editMandatoryHint").textContent=q.mandatory_daily ? "⭐ Questa quest è già obbligatoria. Per rimuoverla resta attiva la procedura di approvazione." : ($("editQuestType").value==='check' || $("editQuestFrequency").value!=='daily' ? "L'obbligatorietà vale solo per le quest Daily normali." : "Puoi aggiungere qui l'obbligatorietà; l'approvazione dell'altro giocatore non viene richiesta per aggiungerla.");
       $("editQuestModal").style.display='flex';
     }
 
@@ -1810,6 +1831,13 @@
       });
       btn.disabled=false; btn.textContent='Invia modifica';
       if(error){console.error(error);alert('Non sono riuscita a inviare la modifica: '+error.message);return;}
+      const scheduledDate=$("editQuestScheduledDate").value || null;
+      const dateResult=await supabaseClient.rpc('set_quest_scheduled_date',{p_quest_id:quest.id,p_scheduled_date:scheduledDate});
+      if(dateResult.error){console.error(dateResult.error);alert('La modifica è stata inviata, ma non sono riuscita a salvare il giorno specifico: '+dateResult.error.message);return;}
+      if(!quest.mandatory_daily && $("editQuestMandatory").checked && $("editQuestType").value==='normal' && $("editQuestFrequency").value==='daily'){
+        const mandatoryResult=await supabaseClient.rpc('set_quest_mandatory',{p_quest_id:quest.id,p_mandatory:true});
+        if(mandatoryResult.error){console.error(mandatoryResult.error);alert("La modifica è stata inviata, ma non sono riuscita ad aggiungere l'obbligatorietà: "+mandatoryResult.error.message);return;}
+      }
       closeEditQuest();
       await loadPendingQuestChanges();
       setConnectionStatus("📨 Modifica inviata: ora deve essere approvata dall'altro giocatore.","ok");
@@ -2042,6 +2070,11 @@
       btn.disabled=false; btn.textContent="Crea Quest";
       if(error){console.error(error);showQuestFormMessage("Non sono riuscita a creare la quest: "+error.message,"error");return;}
       try{
+        const createdId=createdQuest?.id || createdQuest?.[0]?.id;
+        const scheduledDate=$("questScheduledDate").value || null;
+        if(!createdId) throw new Error("Quest creata, ma non riesco a individuarne l'ID.");
+        const dateResult=await supabaseClient.rpc('set_quest_scheduled_date',{p_quest_id:createdId,p_scheduled_date:scheduledDate});
+        if(dateResult.error) throw dateResult.error;
         await setCreatedQuestMandatory(createdQuest,title);
       }catch(e){
         console.error(e);
@@ -2100,11 +2133,22 @@
       $("questFrequency").addEventListener("change",syncMandatoryQuestOption);
       syncMandatoryQuestOption();
       $("questForm").addEventListener("submit",createQuestFromForm);
+      function syncEditMandatoryOption(){
+        const isDaily=$("editQuestFrequency").value==='daily';
+        const isCheck=$("editQuestType").value==='check';
+        const current=currentQuests.find(q=>q.id===$("editQuestId").value);
+        const alreadyMandatory=!!current?.mandatory_daily;
+        $("editQuestMandatory").disabled=alreadyMandatory || !isDaily || isCheck;
+        if(isCheck || !isDaily) $("editQuestMandatory").checked=false;
+        $("editMandatoryHint").textContent=alreadyMandatory ? "⭐ Questa quest è già obbligatoria. Per rimuoverla resta attiva la procedura di approvazione." : (isCheck || !isDaily ? "L'obbligatorietà vale solo per le quest Daily normali." : "Puoi aggiungere qui l'obbligatorietà; l'approvazione dell'altro giocatore non viene richiesta per aggiungerla.");
+      }
       $("editQuestType").addEventListener("change",()=>{
         const isCheck=$("editQuestType").value==='check';
         $("editCheckFields").style.display=isCheck?'block':'none';
         if(isCheck) $("editQuestFrequency").value='occasional';
+        syncEditMandatoryOption();
       });
+      $("editQuestFrequency").addEventListener("change",syncEditMandatoryOption);
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
