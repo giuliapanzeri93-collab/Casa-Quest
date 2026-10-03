@@ -1188,6 +1188,13 @@
             <input id="completionAssistPercent" type="number" min="1" max="100" value="20" placeholder="% aiuto">
           </div>
         </div>
+        <div class="completion-field full bonus-mission-box">
+          <label>
+            <input id="completionBonusMission" type="checkbox">
+            🌟 <strong>Bonus Mission</strong> — condizione speciale raggiunta
+          </label>
+          <div class="muted" style="margin-top:5px">+20% XP e +20% 🪙. Usalo quando una condizione esterna rende la quest più impegnativa o richiede un risultato speciale.</div>
+        </div>
         <div class="completion-field full">
           <label for="completionComments">📝 Micro-obiettivi / cosa hai svolto</label>
           <textarea id="completionComments" placeholder="Es. caricato lavastoviglie; lavato pentole; pulito piano cottura..."></textarea>
@@ -1639,6 +1646,7 @@
       $('completionDate').value='today';
       $('completionAssistEnabled').value='no';
       $('completionAssistPercent').value=20;
+      $('completionBonusMission').checked=false;
       $('completionComments').value='';
       $('completionAssistPlayer').innerHTML=otherPlayers.length
         ? otherPlayers.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')
@@ -1671,11 +1679,17 @@
       const pct=Math.min(100,Math.max(1,Number($('completionPercent').value)||1));
       const ratio=Math.min(Math.max(t/est,.5),2);
       const rawXp=Math.round(Number(selectedQuest.base_xp||0)*(.5+.5*ratio));
-      const totalXp=Math.round(rawXp*(pct/100));
+      let totalXp=Math.round(rawXp*(pct/100));
+      let coins=Math.max(0,Number(selectedQuest.base_coins||0));
+      const bonusMission=$('completionBonusMission').checked;
+      if(bonusMission){
+        totalXp=Math.round(totalXp*1.20);
+        coins=Math.round(coins*1.20);
+      }
       const assistPct=$('completionAssistEnabled').value==='yes' ? Math.min(100,Math.max(0,Number($('completionAssistPercent').value)||0)) : 0;
       const helperXp=Math.round(totalXp*(assistPct/100));
       const ownerXp=totalXp-helperXp;
-      $('xpPreview').textContent=`Anteprima: ${totalXp} XP totali → ${ownerXp} XP a te + ${helperXp} XP all'aiutante · ${Number(selectedQuest.base_coins||0)} 🪙 · completamento ${pct}%.`;
+      $('xpPreview').textContent=`Anteprima: ${totalXp} XP totali → ${ownerXp} XP a te + ${helperXp} XP all'aiutante · ${coins} 🪙${bonusMission?' · 🌟 Bonus Mission +20%':''} · completamento ${pct}%.`;
     }
 
     async function submitCompletion(){
@@ -1686,6 +1700,7 @@
       const assistEnabled=$('completionAssistEnabled').value==='yes';
       const assistPlayerId=assistEnabled ? $('completionAssistPlayer').value || null : null;
       const assistPct=assistEnabled ? Math.round(Number($('completionAssistPercent').value)||0) : 0;
+      const bonusMission=$('completionBonusMission').checked;
       const comments=$('completionComments').value.trim();
       if(mins<1||mins>480){alert('Inserisci un tempo tra 1 e 480 minuti.');return;}
       if(pct<1||pct>100){alert('La percentuale deve essere tra 1% e 100%.');return;}
@@ -1699,7 +1714,8 @@
         p_assist_player_id:assistPlayerId,
         p_assist_percent:assistPct,
         p_completion_comments:comments,
-        p_completion_for_date:date
+        p_completion_for_date:date,
+        p_bonus_mission:bonusMission
       });
       btn.disabled=false; btn.textContent='Invia completamento';
       if(error){console.error(error);alert('Non sono riuscita a inviare la quest: '+error.message);return;}
@@ -2189,6 +2205,7 @@
       $("completionPercent").addEventListener("input",updatePreview);
       $("completionAssistPercent").addEventListener("input",updatePreview);
       $("completionAssistEnabled").addEventListener("change",toggleAssistFields);
+      $("completionBonusMission").addEventListener("change",updatePreview);
       $("completionDate").addEventListener("change",updatePreview);
 
       $("questType").addEventListener("change",()=>{
@@ -2205,6 +2222,7 @@
       $("completionPercent").addEventListener("input",updatePreview);
       $("completionAssistPercent").addEventListener("input",updatePreview);
       $("completionAssistEnabled").addEventListener("change",toggleAssistFields);
+      $("completionBonusMission").addEventListener("change",updatePreview);
       $("completionDate").addEventListener("change",updatePreview);
 
       $("dailyBudgetMinutes").addEventListener("change",()=>{ saveDailyBudget(); loadQuests(); });
