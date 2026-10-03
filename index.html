@@ -663,6 +663,21 @@
     .quest-zone-content{padding:0 8px 8px}
     .quest-zone-content>.quest{margin:8px 0}
 
+    /* MISSION HISTORY */
+    .history-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+    .history-filters{display:flex;gap:8px;flex-wrap:wrap}
+    .history-filters select{padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:#17131f;color:var(--text)}
+    .history-list{display:flex;flex-direction:column;gap:10px}
+    .history-item{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+    .history-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .history-title{font-weight:bold;font-size:16px}
+    .history-date{color:var(--muted);font-size:12px;margin-top:4px}
+    .history-reward{color:var(--gold);font-weight:bold;white-space:nowrap}
+    .history-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+    .history-meta .tag{margin-top:0}
+    .history-comment{margin-top:9px;padding:8px 10px;border-radius:9px;background:#1d1825;color:var(--muted);font-size:13px;white-space:pre-wrap}
+    @media(max-width:700px){.history-top{flex-direction:column}.history-reward{white-space:normal}}
+
 </style>
 </head>
 
@@ -788,6 +803,7 @@
       <button class="nav-button" data-section="inventory">🎒 Inventario</button>
       <button class="nav-button" data-section="achievements">🏆 Achievements</button>
       <button class="nav-button" data-section="ranking">👑 Ranking</button>
+      <button class="nav-button" data-section="history">📜 Storico Missioni</button>
       <button class="nav-button" data-section="manage">⚙️ Gestione Quest</button>
     </nav>
 
@@ -1085,6 +1101,30 @@
             Potrebbe esserci qualcosa che non avete ancora scoperto.
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- MISSION HISTORY -->
+    <section class="section" id="history">
+      <div class="section-title">📜 Storico Missioni completate</div>
+      <div class="card">
+        <div class="history-toolbar">
+          <div class="muted">Qui trovi le missioni effettivamente approvate, con ricompense e dettagli del completamento.</div>
+          <div class="history-filters">
+            <select id="historyPlayerFilter" aria-label="Filtra per giocatore">
+              <option value="all">👥 Tutti</option>
+              <option value="Giulia">🧙‍♀️ Giulia</option>
+              <option value="Diego">🧝‍♂️ Diego</option>
+            </select>
+            <select id="historyLimit" aria-label="Numero di missioni da mostrare">
+              <option value="25">Ultime 25</option>
+              <option value="50" selected>Ultime 50</option>
+              <option value="100">Ultime 100</option>
+            </select>
+            <button class="small-button" id="refreshHistory" type="button">🔄 Aggiorna</button>
+          </div>
+        </div>
+        <div id="missionHistory" class="history-list"><div class="muted">Caricamento storico...</div></div>
       </div>
     </section>
 
@@ -1612,6 +1652,64 @@
       document.querySelectorAll('[data-transfer]').forEach(btn=>btn.addEventListener('click',()=>transferQuest(btn.dataset.transfer)));
     }
 
+    function historyPlayerName(playerId){
+      return currentPlayers.find(p=>p.id===playerId)?.name || 'Giocatore';
+    }
+
+    function renderMissionHistory(rows){
+      const box=$("missionHistory");
+      if(!box)return;
+      const playerFilter=$("historyPlayerFilter")?.value || 'all';
+      const limit=Number($("historyLimit")?.value)||50;
+      const filtered=(rows||[]).filter(r=>playerFilter==='all' || historyPlayerName(r.player_id)===playerFilter).slice(0,limit);
+      if(!filtered.length){
+        box.innerHTML='<div class="muted">📭 Nessuna missione completata con questi filtri.</div>';
+        return;
+      }
+      box.innerHTML=filtered.map(c=>{
+        const player=historyPlayerName(c.player_id);
+        const icon=player==='Giulia'?'🧙‍♀️':player==='Diego'?'🧝‍♂️':'⚔️';
+        const date=c.completion_for_date || dateKey(c.completed_at||c.submitted_at);
+        const quest=currentQuests.find(q=>q.id===c.quest_id);
+        const title=c.quests?.title || quest?.title || 'Missione';
+        const bonus=c.bonus_mission ? '<span class="tag">🌟 Bonus Mission +20%</span>' : '';
+        const pct=Number(c.completion_percent||100);
+        const assist=c.assist_player_id ? `<span class="tag">🤝 Assist: ${esc(historyPlayerName(c.assist_player_id))} · ${Number(c.assist_percent||0)}%</span>` : '';
+        const status=c.status==='auto_approved'?'AUTO-APPROVATA':'APPROVATA';
+        return `<div class="history-item">
+          <div class="history-top">
+            <div><div class="history-title">${esc(title)}</div><div class="history-date">${esc(date)} · ${icon} ${esc(player)} · ${status}</div></div>
+            <div class="history-reward">+${Number(c.xp_awarded||0)} XP · +${Number(c.coins_awarded||0)} 🪙</div>
+          </div>
+          <div class="history-meta">
+            <span class="tag">📊 ${pct}% completamento</span>
+            <span class="tag">⏱️ ${Number(c.time_minutes||0)} min</span>
+            ${bonus}${assist}
+          </div>
+          ${c.completion_comments ? `<div class="history-comment">📝 ${esc(c.completion_comments)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    async function loadMissionHistory(){
+      const box=$("missionHistory");
+      if(!box || !supabaseClient)return;
+      box.innerHTML='<div class="muted">Caricamento storico...</div>';
+      const {data,error}=await supabaseClient
+        .from('quest_completions')
+        .select('id,quest_id,player_id,completed_at,submitted_at,status,time_minutes,xp_awarded,coins_awarded,completion_for_date,completion_percent,completion_comments,assist_player_id,assist_percent,bonus_mission')
+        .in('status',['approved','auto_approved'])
+        .order('completion_for_date',{ascending:false})
+        .order('submitted_at',{ascending:false})
+        .limit(100);
+      if(error){
+        console.error(error);
+        box.innerHTML='<div class="muted">⚠️ Non riesco a caricare lo storico delle missioni.</div>';
+        return;
+      }
+      renderMissionHistory(data||[]);
+    }
+
     async function loadApprovals(){
       const box=$("pendingApprovals");
       const me=currentPlayer();
@@ -1760,7 +1858,7 @@
       btn.disabled=false; btn.textContent='Invia completamento';
       if(error){console.error(error);alert('Non sono riuscita a inviare la quest: '+error.message);return;}
       closeCompletion();
-      await loadQuests(); await loadApprovals();
+      await loadQuests(); await loadApprovals(); await loadMissionHistory();
       setConnectionStatus('✅ Completamento inviato: aspetta l’approvazione dell’altro giocatore.','ok');
     }
 
@@ -1769,7 +1867,7 @@
       if(!approve) reason=prompt('Motivo del rifiuto (facoltativo):');
       const {error}=await supabaseClient.rpc('review_quest_completion',{p_completion_id:id,p_approve:approve,p_rejection_reason:reason});
       if(error){console.error(error);alert('Operazione non riuscita: '+error.message);return;}
-      await loadApprovals(); await loadPlayers(); await loadQuests();
+      await loadApprovals(); await loadPlayers(); await loadQuests(); await loadMissionHistory();
       setConnectionStatus(approve?'✅ Quest approvata e ricompensa assegnata.':'Quest rifiutata.',approve?'ok':'error');
     }
 
@@ -2186,6 +2284,7 @@
       currentUser=session.user; showApp(true); setConnectionStatus("Accesso effettuato. Caricamento dungeon...");
       const ok=await loadPlayers(); if(!ok)return;
       await loadQuests(); await loadApprovals(); await loadPendingQuestChanges(); await loadPendingQuestDeletions(); await loadPendingMandatoryRemovals(); await loadPendingDailySkips(); renderManagementQuests(); setConnectionStatus("🏰 Casa Quest è collegato a Supabase.","ok");
+      await loadMissionHistory();
     }
 
     async function login(){
@@ -2274,6 +2373,9 @@
 
       $("dailyBudgetMinutes").addEventListener("change",()=>{ saveDailyBudget(); loadQuests(); });
       $("regenerateDailyPlan").addEventListener("click",()=>{ saveDailyBudget(); loadQuests(); });
+      $("historyPlayerFilter").addEventListener("change",()=>loadMissionHistory());
+      $("historyLimit").addEventListener("change",()=>loadMissionHistory());
+      $("refreshHistory").addEventListener("click",()=>loadMissionHistory());
       initNavigation();
 
       try{
