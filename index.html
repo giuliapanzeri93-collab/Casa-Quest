@@ -928,6 +928,17 @@
               </div>
 
               <div class="form-field">
+                <label for="questDailyRepetitions">🔁 Quante volte al giorno?</label>
+                <select id="questDailyRepetitions">
+                  <option value="1" selected>1 volta</option>
+                  <option value="2">2 volte</option>
+                  <option value="3">3 volte</option>
+                  <option value="4">4 volte</option>
+                </select>
+                <div class="muted" style="margin-top:5px">Vale per tutte le quest normali. Una quest condivisa conta le ripetizioni insieme, quindi potete dividervele tra Giulia e Diego.</div>
+              </div>
+
+              <div class="form-field">
                 <label for="questDifficulty">Difficoltà (1–5)</label>
                 <input id="questDifficulty" type="number" min="1" max="5" value="1" required>
               </div>
@@ -1125,6 +1136,7 @@
           <div class="form-field"><label>Frequenza</label><select id="editQuestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="recurring">Ricorrente</option><option value="occasional">Occasionale</option></select></div>
           <div class="form-field" id="editRecurringWeekdayField" style="display:none"><label for="editQuestRecurringWeekday">📅 Giorno della settimana</label><select id="editQuestRecurringWeekday"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select><div class="muted" style="margin-top:5px">La quest comparirà nel Daily solo nel giorno scelto.</div></div>
           <div class="form-field"><label for="editQuestScheduledDate">📅 Giorno specifico</label><input id="editQuestScheduledDate" type="date"><div class="muted" style="margin-top:5px">Se impostato, la quest comparirà nel Daily solo quel giorno.</div></div>
+          <div class="form-field"><label for="editQuestDailyRepetitions">🔁 Quante volte al giorno?</label><select id="editQuestDailyRepetitions"><option value="1">1 volta</option><option value="2">2 volte</option><option value="3">3 volte</option><option value="4">4 volte</option></select><div class="muted" style="margin-top:5px">Vale per tutte le quest normali. Le ripetizioni di una quest condivisa sono comuni ai due giocatori.</div></div>
           <div class="form-field full"><div class="check-row"><label><input id="editQuestStreak" type="checkbox"> Couple Streak</label><label><input id="editQuestTransferable" type="checkbox"> Trasferibile</label><label><input id="editQuestMandatory" type="checkbox"> ⭐ Obbligatoria nella Daily</label></div><div class="muted" id="editMandatoryHint" style="margin-top:8px">L'obbligatorietà si può aggiungere da qui. Per rimuoverla resta attiva la procedura di approvazione già esistente.</div></div>
         </div>
         <div class="form-actions"><button type="button" class="small-button" id="cancelEditQuest">Annulla</button><button type="submit" class="primary-button" id="submitQuestChange">Invia modifica</button></div>
@@ -1157,6 +1169,7 @@
     <div class="card" style="width:100%;max-width:560px;margin:20px 0;box-shadow:0 20px 70px #000;">
       <h3 id="completionTitle">Completa quest</h3>
       <p id="completionDescription" class="muted"></p>
+      <div id="completionRepetitionInfo" class="tag" style="display:none;margin-bottom:12px;"></div>
 
       <div class="completion-grid">
         <div class="completion-field">
@@ -1220,6 +1233,7 @@
     let currentUser = null;
     let currentPlayers = [];
     let currentQuests = [];
+    let currentCompletions = [];
     let pendingDailySkips=[];
     let pendingDeletionRequests = [];
     let pendingMandatoryRemovalRequests = [];
@@ -1327,12 +1341,28 @@
       return pendingDailySkips.some(r=>r.status==='approved' && r.quest_id===q.id && r.player_id===currentPlayer()?.id && r.skip_date===todayISO());
     }
 
+    function questDailyRepetitions(q){
+      const n=Number(q?.daily_repetitions);
+      return Number.isFinite(n) ? Math.min(4,Math.max(1,Math.round(n))) : 1;
+    }
+
+    function completionCountForDate(q, completionRows, targetDate=dateKey(new Date())){
+      if(q?.quest_type==='check') return 0;
+      return (completionRows||[]).filter(c=>c.quest_id===q.id && completionDateValue(c)===targetDate && ['pending','approved','auto_approved'].includes(c.status)).length;
+    }
+
+    function completionProgress(q, completionRows, targetDate=dateKey(new Date())){
+      const required=questDailyRepetitions(q);
+      const done=Math.min(required,completionCountForDate(q,completionRows,targetDate));
+      return {done,required,remaining:Math.max(0,required-done)};
+    }
+
     function completionBlocksQuest(q, completionRows){
-      const rows=(completionRows||[]).filter(c=>c.quest_id===q.id && ['pending','approved','auto_approved'].includes(c.status));
-      if(!rows.length) return false;
-      if(q.frequency==='occasional') return true;
-      if(q.frequency==='daily' || q.frequency==='recurring') return rows.some(c=>completionDateValue(c)===dateKey(new Date()));
-      if(q.frequency==='weekly') return rows.some(c=>isoWeekKey(completionDateValue(c))===isoWeekKey(new Date()));
+      if(q?.quest_type==='check') return false;
+      const p=completionProgress(q,completionRows,dateKey(new Date()));
+      if(p.done>=p.required) return true;
+      if(q.frequency==='weekly') return false;
+      if(q.frequency==='occasional') return false;
       return false;
     }
 
@@ -1404,17 +1434,20 @@
       const check=q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : '';
       const boss=q.boss ? '<span class="tag">BOSS</span>' : '';
       const owner=ownershipLabel(q.ownership);
+      const progress=q.quest_type==='check' ? null : completionProgress(q,currentCompletions,dateKey(new Date()));
+      const repetitionTag=progress && progress.required>1 ? `<span class="tag">🔁 ${progress.done}/${progress.required} oggi</span>` : '';
+      const completedToday=progress && progress.done>=progress.required;
       return `<div class="quest ${q.urgent?'urgent':''}">
         <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
         ${check}
         <div class="quest-meta">${esc(q.description||'')} · ${esc(owner)} · ${Number(q.estimated_minutes||10)} min</div>
-        ${urgent}${boss}${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
+        ${urgent}${boss}${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}${repetitionTag}<span class="tag">Difficoltà ${Number(q.difficulty||1)}/5</span></div>
         <div class="quest-reward">+${Number(q.base_xp||0)} XP · +${Number(q.base_coins||0)} 🪙</div></div>
-        <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}</span>
+        <div class="quest-bottom"><span class="quest-meta">${esc(frequencyLabel(q.frequency))}${progress && progress.required>1 ? ` · ${progress.remaining} ${progress.remaining===1?'ripetizione':'ripetizioni'} rimanenti` : ''}</span>
         <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
           ${canTransferQuest(q) ? `<button class="small-button" data-transfer="${q.id}" type="button">↔️ Trasferisci</button>` : ''}
           ${String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true ? `<button class="small-button" data-skip-quest="${q.id}" type="button">⏭️ Salta oggi</button>` : ''}
-          <button data-complete="${q.id}">Completa</button>
+          ${!completedToday ? `<button data-complete="${q.id}">${progress && progress.required>1 ? `Completa (${progress.done+1}/${progress.required})` : 'Completa'}</button>` : '<span class="tag">✅ COMPLETA OGGI</span>'}
         </span></div></div>`;
     }
 
@@ -1490,7 +1523,7 @@
       return value;
     }
 
-    function buildDailyPlan(candidates,budget){
+    function buildDailyPlan(candidates,budget,completionRows=currentCompletions){
       const priorities={daily:100,weekly:85,recurring:65,occasional:35};
       const shuffled=[...candidates].sort((a,b)=>{
         const pa=priorities[a.frequency]||0, pb=priorities[b.frequency]||0;
@@ -1503,24 +1536,27 @@
       const mandatory=available.filter(q=>String(q.frequency||'').toLowerCase()==='daily' && q.mandatory_daily===true);
       const optional=available.filter(q=>!mandatory.includes(q));
       for(const q of mandatory){
-        const mins=Math.max(1,Number(q.estimated_minutes||10));
+        const p=completionProgress(q,completionRows,dateKey(new Date()));
+        const mins=Math.max(1,Number(q.estimated_minutes||10))*Math.max(1,p.remaining);
         chosen.push(q);
         total+=mins;
       }
       for(const q of optional){
-        const mins=Math.max(1,Number(q.estimated_minutes||10));
+        const p=completionProgress(q,completionRows,dateKey(new Date()));
+        const mins=Math.max(1,Number(q.estimated_minutes||10))*Math.max(1,p.remaining);
         if(total+mins<=budget){chosen.push(q);total+=mins;}
       }
       // If nothing fits, pick the shortest quest rather than showing an empty plan.
       if(!chosen.length && shuffled.length){
         chosen.push([...shuffled].sort((a,b)=>Number(a.estimated_minutes||10)-Number(b.estimated_minutes||10))[0]);
-        total=Number(chosen[0].estimated_minutes||10);
+        const p=completionProgress(chosen[0],completionRows,dateKey(new Date()));
+        total=Number(chosen[0].estimated_minutes||10)*Math.max(1,p.remaining);
       }
       return {chosen,total};
     }
 
     function renderDailyPlan(candidates,budget){
-      const plan=buildDailyPlan(candidates,budget);
+      const plan=buildDailyPlan(candidates,budget,currentCompletions);
       const box=$('dailyQuests');
       const chosenIds=new Set(plan.chosen.map(q=>q.id));
       box.innerHTML=plan.chosen.length ? renderZoneGroups(plan.chosen) : '<div class="empty-plan">🎉 Nessuna quest disponibile: il dungeon è stranamente in ordine.</div>';
@@ -1544,10 +1580,11 @@
         return;
       }
 
-      const {data:completions,error:completionError}=await supabaseClient.from('quest_completions').select('id,quest_id,player_id,completed_at,submitted_at,status,check_action_taken,check_checked_at,completion_for_date,completion_percent,completion_comments,assist_player_id,assist_percent,helper_xp_awarded');
+      const {data:completions,error:completionError}=await supabaseClient.from('quest_completions').select('id,quest_id,player_id,completed_at,submitted_at,status,check_action_taken,check_checked_at,completion_for_date,completion_percent,completion_comments,assist_player_id,assist_percent,helper_xp_awarded,bonus_mission');
       if(completionError) console.error(completionError);
 
       currentQuests=data||[];
+      currentCompletions=completions||[];
       renderHouseMap();
       renderManagementQuests();
 
@@ -1641,6 +1678,9 @@
       const otherPlayers=currentPlayers.filter(p=>p.id!==me?.id && p.auth_user_id!==currentUser?.id);
       $('completionTitle').textContent='Completa: '+selectedQuest.title;
       $('completionDescription').textContent=selectedQuest.description || 'Inserisci come hai svolto la quest.';
+      const repetition=completionProgress(selectedQuest,currentCompletions,dateKey(new Date()));
+      $('completionRepetitionInfo').style.display=repetition.required>1?'inline-block':'none';
+      $('completionRepetitionInfo').textContent=repetition.required>1 ? `🔁 Ripetizione ${repetition.done+1}/${repetition.required} di oggi` : '';
       $('completionPercent').value=100;
       $('completionMinutes').value=Number(selectedQuest.estimated_minutes||10);
       $('completionDate').value='today';
@@ -1759,6 +1799,7 @@
       $("questStreak").checked=true;
       $("questTransferable").checked=true;
       $("questMandatory").checked=false;
+      $("questDailyRepetitions").value="1";
       $("questScheduledDate").value="";
       $("questType").value="normal";
       $("questCheckXP").value=5;
@@ -1817,6 +1858,7 @@
       $("editQuestRecurringWeekday").value=(q.recurring_weekday===null || q.recurring_weekday===undefined ? '1' : String(q.recurring_weekday));
       $("editRecurringWeekdayField").style.display=q.frequency==='recurring'?'block':'none';
       $("editQuestScheduledDate").value=q.scheduled_date||'';
+      $("editQuestDailyRepetitions").value=String(questDailyRepetitions(q));
       $("editQuestType").value=q.quest_type||'normal';
       $("editCheckBonusXP").value=Number(q.check_bonus_xp||0);
       $("editCheckBonusCoins").value=Number(q.check_bonus_coins||0);
@@ -1873,6 +1915,8 @@
       const scheduledDate=$("editQuestScheduledDate").value || null;
       const dateResult=await supabaseClient.rpc('set_quest_scheduled_date',{p_quest_id:quest.id,p_scheduled_date:scheduledDate});
       if(dateResult.error){console.error(dateResult.error);alert('La modifica è stata inviata, ma non sono riuscita a salvare il giorno specifico: '+dateResult.error.message);return;}
+      const repetitionResult=await supabaseClient.rpc('set_quest_daily_repetitions',{p_quest_id:quest.id,p_daily_repetitions:Math.min(4,Math.max(1,Number($("editQuestDailyRepetitions").value)||1))});
+      if(repetitionResult.error){console.error(repetitionResult.error);alert('La modifica è stata inviata, ma non sono riuscita a salvare le ripetizioni: '+repetitionResult.error.message);return;}
       if(!quest.mandatory_daily && $("editQuestMandatory").checked && $("editQuestType").value==='normal' && $("editQuestFrequency").value==='daily'){
         const mandatoryResult=await supabaseClient.rpc('set_quest_mandatory',{p_quest_id:quest.id,p_mandatory:true});
         if(mandatoryResult.error){console.error(mandatoryResult.error);alert("La modifica è stata inviata, ma non sono riuscita ad aggiungere l'obbligatorietà: "+mandatoryResult.error.message);return;}
@@ -2111,12 +2155,15 @@
       try{
         const createdId=createdQuest?.id || createdQuest?.[0]?.id;
         const scheduledDate=$("questScheduledDate").value || null;
+        const dailyRepetitions=Math.min(4,Math.max(1,Number($("questDailyRepetitions").value)||1));
         if(!createdId) throw new Error("Quest creata, ma non riesco a individuarne l'ID.");
         const dateResult=await supabaseClient.rpc('set_quest_scheduled_date',{p_quest_id:createdId,p_scheduled_date:scheduledDate});
         if(dateResult.error) throw dateResult.error;
         const recurringWeekday=$('questFrequency').value==='recurring' ? Number($('questRecurringWeekday').value) : null;
         const weekdayResult=await supabaseClient.rpc('set_quest_recurring_weekday',{p_quest_id:createdId,p_recurring_weekday:recurringWeekday});
         if(weekdayResult.error) throw weekdayResult.error;
+        const repetitionResult=await supabaseClient.rpc('set_quest_daily_repetitions',{p_quest_id:createdId,p_daily_repetitions:dailyRepetitions});
+        if(repetitionResult.error) throw repetitionResult.error;
         await setCreatedQuestMandatory(createdQuest,title);
       }catch(e){
         console.error(e);
