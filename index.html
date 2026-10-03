@@ -912,6 +912,15 @@
                 </select>
               </div>
 
+              <div class="form-field" id="recurringWeekdayField" style="display:none">
+                <label for="questRecurringWeekday">📅 Giorno della settimana</label>
+                <select id="questRecurringWeekday">
+                  <option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option>
+                  <option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option>
+                </select>
+                <div class="muted" style="margin-top:5px">La quest comparirà nel Daily solo nel giorno scelto.</div>
+              </div>
+
               <div class="form-field">
                 <label for="questScheduledDate">📅 Giorno specifico</label>
                 <input id="questScheduledDate" type="date">
@@ -1114,6 +1123,7 @@
           <div class="form-field"><label>XP</label><input id="editQuestXP" type="number" min="0"></div>
           <div class="form-field"><label>Monete</label><input id="editQuestCoins" type="number" min="0"></div>
           <div class="form-field"><label>Frequenza</label><select id="editQuestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="recurring">Ricorrente</option><option value="occasional">Occasionale</option></select></div>
+          <div class="form-field" id="editRecurringWeekdayField" style="display:none"><label for="editQuestRecurringWeekday">📅 Giorno della settimana</label><select id="editQuestRecurringWeekday"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select><div class="muted" style="margin-top:5px">La quest comparirà nel Daily solo nel giorno scelto.</div></div>
           <div class="form-field"><label for="editQuestScheduledDate">📅 Giorno specifico</label><input id="editQuestScheduledDate" type="date"><div class="muted" style="margin-top:5px">Se impostato, la quest comparirà nel Daily solo quel giorno.</div></div>
           <div class="form-field full"><div class="check-row"><label><input id="editQuestStreak" type="checkbox"> Couple Streak</label><label><input id="editQuestTransferable" type="checkbox"> Trasferibile</label><label><input id="editQuestMandatory" type="checkbox"> ⭐ Obbligatoria nella Daily</label></div><div class="muted" id="editMandatoryHint" style="margin-top:8px">L'obbligatorietà si può aggiungere da qui. Per rimuoverla resta attiva la procedura di approvazione già esistente.</div></div>
         </div>
@@ -1256,12 +1266,23 @@
       return hasSpecificDate(q) && String(q.scheduled_date)===todayQuestDate();
     }
 
+    function isRecurringOnToday(q){
+      if(String(q.frequency||'').toLowerCase()!=='recurring') return false;
+      if(q.recurring_weekday===null || q.recurring_weekday===undefined || q.recurring_weekday==='') return true;
+      return Number(q.recurring_weekday)===new Date().getDay();
+    }
+
+    function recurringWeekdayLabel(value){
+      return ({0:'Domenica',1:'Lunedì',2:'Martedì',3:'Mercoledì',4:'Giovedì',5:'Venerdì',6:'Sabato'})[Number(value)] || '';
+    }
+
     function questCanBeDone(q){
       const ownership=String(q.ownership||"").toLowerCase();
       const myName=currentPlayer()?.name;
       if(ownership==='giulia' && myName!=='Giulia') return false;
       if(ownership==='diego' && myName!=='Diego') return false;
       if(hasSpecificDate(q) && !isScheduledForToday(q)) return false;
+      if(String(q.frequency||'').toLowerCase()==='recurring' && !isRecurringOnToday(q)) return false;
       return true;
     }
 
@@ -1528,7 +1549,7 @@
       await loadTodayChecks(completions||[]);
       const normal=visible.filter(q=>q.quest_type!=='check' && !q.boss);
       const daily=normal.filter(q=>isScheduledForToday(q) || q.frequency==='daily');
-      const recurring=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='recurring');
+      const recurring=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='recurring' && isRecurringOnToday(q));
       const weekly=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='weekly');
       const occasional=normal.filter(q=>!hasSpecificDate(q) && q.frequency==='occasional');
       const bosses=visible.filter(q=>q.boss);
@@ -1751,7 +1772,7 @@
           <div class="quest-top"><div><div class="quest-name">${esc(q.title)}</div>
           ${q.quest_type==='check' ? '<span class="check-badge">🔎 CHECK</span>' : ''}
           ${q.mandatory_daily ? '<span class="tag">⭐ OBBLIGATORIA</span>' : ''}
-          <div class="quest-meta">${esc(q.ownership||'Contesa')} · ${esc(q.zone||'Casa')} · ${esc(q.frequency||'occasionale')} · ${Number(q.estimated_minutes||10)} min${q.scheduled_date ? ` · 📅 ${esc(q.scheduled_date)}` : ''}</div></div>
+          <div class="quest-meta">${esc(q.ownership||'Contesa')} · ${esc(q.zone||'Casa')} · ${esc(q.frequency||'occasionale')}${q.frequency==='recurring' && q.recurring_weekday!==null && q.recurring_weekday!==undefined ? ` · 📅 ${esc(recurringWeekdayLabel(q.recurring_weekday))}` : ''} · ${Number(q.estimated_minutes||10)} min${q.scheduled_date ? ` · 📅 ${esc(q.scheduled_date)}` : ''}</div></div>
           <div class="quest-reward">${Number(q.base_xp||0)} XP · ${Number(q.base_coins||0)} 🪙</div></div>
           <div class="quest-meta">Difficoltà ${Number(q.difficulty||1)}/5${q.quest_type==='check' ? ` · Bonus Check ${Number(q.check_bonus_xp||0)} XP + ${Number(q.check_bonus_coins||0)} 🪙` : ''}</div>
           <div class="quest-bottom"><span class="tag">${q.active ? 'ATTIVA' : 'DISATTIVA'}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><button data-edit-quest="${q.id}">✏️ Modifica</button>${skipUi}${deletionUi}${mandatoryUi}</span></div>
@@ -1777,6 +1798,8 @@
       $("editQuestXP").value=Number(q.base_xp||0);
       $("editQuestCoins").value=Number(q.base_coins||0);
       $("editQuestFrequency").value=q.frequency||'occasional';
+      $("editQuestRecurringWeekday").value=(q.recurring_weekday===null || q.recurring_weekday===undefined ? '1' : String(q.recurring_weekday));
+      $("editRecurringWeekdayField").style.display=q.frequency==='recurring'?'block':'none';
       $("editQuestScheduledDate").value=q.scheduled_date||'';
       $("editQuestType").value=q.quest_type||'normal';
       $("editCheckBonusXP").value=Number(q.check_bonus_xp||0);
@@ -2075,6 +2098,9 @@
         if(!createdId) throw new Error("Quest creata, ma non riesco a individuarne l'ID.");
         const dateResult=await supabaseClient.rpc('set_quest_scheduled_date',{p_quest_id:createdId,p_scheduled_date:scheduledDate});
         if(dateResult.error) throw dateResult.error;
+        const recurringWeekday=$('questFrequency').value==='recurring' ? Number($('questRecurringWeekday').value) : null;
+        const weekdayResult=await supabaseClient.rpc('set_quest_recurring_weekday',{p_quest_id:createdId,p_recurring_weekday:recurringWeekday});
+        if(weekdayResult.error) throw weekdayResult.error;
         await setCreatedQuestMandatory(createdQuest,title);
       }catch(e){
         console.error(e);
@@ -2130,8 +2156,12 @@
       $("cancelCompletion").addEventListener("click",closeCompletion);
       $("completionMinutes").addEventListener("input",updatePreview);
       $("confirmCompletion").addEventListener("click",submitCompletion);
-      $("questFrequency").addEventListener("change",syncMandatoryQuestOption);
+      $("questFrequency").addEventListener("change",()=>{
+        syncMandatoryQuestOption();
+        $("recurringWeekdayField").style.display=$("questFrequency").value==='recurring'?'block':'none';
+      });
       syncMandatoryQuestOption();
+      $("recurringWeekdayField").style.display=$("questFrequency").value==='recurring'?'block':'none';
       $("questForm").addEventListener("submit",createQuestFromForm);
       function syncEditMandatoryOption(){
         const isDaily=$("editQuestFrequency").value==='daily';
@@ -2148,7 +2178,10 @@
         if(isCheck) $("editQuestFrequency").value='occasional';
         syncEditMandatoryOption();
       });
-      $("editQuestFrequency").addEventListener("change",syncEditMandatoryOption);
+      $("editQuestFrequency").addEventListener("change",()=>{
+        $("editRecurringWeekdayField").style.display=$("editQuestFrequency").value==='recurring'?'block':'none';
+        syncEditMandatoryOption();
+      });
       $("editQuestForm").addEventListener("submit",submitQuestChange);
       $("cancelEditQuest").addEventListener("click",closeEditQuest);
       $("resetQuestForm").addEventListener("click",resetQuestForm);
